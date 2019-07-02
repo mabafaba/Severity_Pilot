@@ -1,0 +1,125 @@
+---
+title: "pilot"
+author: "REACH BGD"
+date: "2 July 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning = FALSE, message=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE,
+                      message=FALSE,
+                      warning = FALSE)
+library(dplyr)
+library(hypegrammaR)
+library(kableExtra)
+
+source("functions.R")
+source("severity.R")
+
+#'  READ ALL INPUTS
+host_assessment <- load_assessment(data_csv = "./input/csv/hc_data_hh.csv",
+                           questions_csv = "./input/csv/questions_hc.csv" ,
+                           choices_csv = "./input/csv/choices_hc.csv",
+                           samplingframe_csv = "./input/csv/samplingframe.csv",
+                           data.stratum.column = "union_name",
+                           sampling.frame.population.column = "NbHH",
+                           sampling.frame.stratum.column = "union_id")
+
+
+host_hh_data<-assessment$data
+host_questionnaire<-assessment$questionnaire
+host_weighting<-assessment$weighting
+
+
+# CALCULATE SEVERITY 
+host_data$overall_severity <- hc_severity(data,questionnaire)
+
+
+  
+```
+
+
+
+
+
+
+
+# Severity Scoring Pilot
+
+## Summary
+
+### Results by Union
+
+Distribution of severity:
+
+```{r}
+
+ggplot(data)+
+  geom_density(aes(x=overall_severity))+
+  theme_minimal()+
+  facet_grid(rows = vars(union_name))
+
+
+```
+
+The estimated severity in the host community:
+
+
+
+
+
+```{r}
+type_of_analysis<-map_to_case("group_difference",
+                  dependent.var.type = "categorical",
+                  independent.var.type = "categorical")
+
+
+severity_by_union <- map_to_result(data,dependent.var = "overall_severity",
+              "union_name",
+              case = type_of_analysis,
+              weighting = weighting)
+
+severity_by_union %>%
+  map_to_labeled(questionnaire) %>% 
+  map_to_table %>% kable %>% kable_styling()
+
+```
+
+
+```{r}
+
+severity_by_union %>%
+  map_to_labeled(host_hh_questionnaire) %>% 
+  map_to_visualisation %>% .$ggplot
+
+
+```
+
+### Distribution - How 'varied' are the scores?
+```{r}
+design<-map_to_design(host_hh,weighting_function =  host_weighting)
+standard_deviation <- sqrt(survey::svyvar(~overall_severity,design)[1])
+```
+The overall standard deviation was <b> `r standard_deviation` </b>
+```{r}
+
+
+
+```
+
+```{r}
+ecdf <- weighted_ecdf(host_hh$overall_severity, host_weighting(host_hh))
+
+ggplot(ecdf, aes(x, cum.pct)) + geom_line() + theme_minimal() + ylab("Cummulative probability") + xlab("Score")
+
+```
+
+## Results
+
+## Methodology
+
+## Conclusion
+
+
+
