@@ -18,7 +18,8 @@ source("severity.R")
 source("refugee_severity_bgd_msna18.R")
 #'  READ INPUT FILES
 
-host_assessment <- load_assessment(data_csv = "./input/HCMSNA_csv/hc_data_hh.csv",
+host_assessment <- load_assessment(data_csv = "./input/HCMSNA_csv/HC_HH_Data.csv",
+                                   loops_csv = c(individuals = "./input/HCMSNA_csv/HC_Indiv_Data.csv"),
                          questions_csv = "./input/HCMSNA_csv/questions_hc.csv" ,
                            choices_csv = "./input/HCMSNA_csv/choices_hc.csv",
                            samplingframe_csv = "./input/HCMSNA_csv/samplingframe.csv",
@@ -28,7 +29,7 @@ host_assessment <- load_assessment(data_csv = "./input/HCMSNA_csv/hc_data_hh.csv
                          
                            default_disaggregation = "union_name",
                            asdf = "xasdf")
-
+View(host_assessment$data)
 
 refugee_assessment <- load_assessment(data_csv = "./input/RefugeeMSNA_csv/Refugee_MSNA_HH.csv",
                                       loops_csv = c(individuals = "./input/RefugeeMSNA_csv/Refugee_MSNA_Indiv_Data.csv"),
@@ -46,16 +47,19 @@ refugee_assessment <- load_assessment(data_csv = "./input/RefugeeMSNA_csv/Refuge
 
 # remove non-consent
 refugee_assessment$data <- refugee_assessment$data[refugee_assessment$data$survey_consent=="yes",]
+host_assessment$data <- host_assessment$data[host_assessment$data$survey_consent=="yes",]
 
 # CALCULATE SEVERITY 
 
-host_assessment$data$overall_severity <- hc_severity(host_assessment$data,
-                                                     host_assessment$questionnaire)
+host_assessment$severity <- host_severity_bgd_msna18(hh = host_assessment$data,
+                                                     host_assessment$loops$individuals)
+
+
+
 
 refugee_assessment$severity <- refugee_severity_bgd_msna18(hh  = refugee_assessment$data,
                                                            ind = refugee_assessment$loops$individuals)
 
-refugee_assessment$data$overall_severity <- refugee_assessment$severity$si.fsl
 # PARAMETERS
 
 attach(refugee_assessment)

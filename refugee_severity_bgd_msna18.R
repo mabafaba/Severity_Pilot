@@ -16,7 +16,7 @@ refugee_severity_bgd_msna18<-function(hh,ind){
     group_by(instance_name) %>% 
     summarise(
       #COUNT-IF ANSWER =...  IF FAMILY HAS >0 KIDS IN SCHOOL THEY 
-      si.learning_space_attendance=ifelse(sum(learning_space_attendance=="no",na.rm=TRUE)>=3,2, ifelse(sum(learning_space_attendance=="no",na.rm=TRUE)>=1,1,0)),
+      si.edu.learning_space_attendance=ifelse(sum(learning_space_attendance=="no",na.rm=TRUE)>=3,2, ifelse(sum(learning_space_attendance=="no",na.rm=TRUE)>=1,1,0)),
       si.edu.non_religious_learning=ifelse(sum(religious_space_attendance=="no",na.rm=TRUE)>=3,2, ifelse(sum(religious_space_attendance=="no",na.rm=TRUE)>=1,1,0)),
       si.nfi.mosquito_net=ifelse(sum(under5_mosquito_net=="no", na.rm=TRUE)>1,2 ,ifelse(sum(under5_mosquito_net=="yes", na.rm=TRUE)>0,1,0)),
       si.health.illness.serious=ifelse(sum(individual_illness=="yes", na.rm=TRUE)>1,2 ,ifelse(sum(individual_illness=="yes", na.rm=TRUE)>0,1,0)),
@@ -61,13 +61,13 @@ refugee_severity_bgd_msna18<-function(hh,ind){
   
   hh_level_indicators<-hhy%>% 
     mutate(
-      si.protect_lighting=ifelse(lighting_availability=="yes", 2,0),
-      si.protect_unsafe=ifelse(rowSums(.[unsafe_location_cols],na.rm=TRUE)>8,2,
+      si.protect.lighting=ifelse(lighting_availability=="yes", 2,0),
+      si.protect.unsafe=ifelse(rowSums(.[unsafe_location_cols],na.rm=TRUE)>8,2,
                                ifelse(rowSums(.[unsafe_location_cols],na.rm = TRUE)>4,1,0)),
       si.nfi.shelt_damage= ifelse(shelter_damage.roof_destroyed=="yes"| shelter_damage.wall_destroyed=="yes",2,
                                   ifelse((shelter_damage.roof_damaged=="yes"|shelter_damage.wall_damaged=="yes")& (shelter_damage.roof_destroyed=="no"|
                                                                                                                      shelter_damage.wall_destroyed=="no"),1,0)),
-      si.nfi_essential=ifelse(rowSums(.[essential_nfis],na.rm=TRUE)>=3,2,
+      si.nfi.essential=ifelse(rowSums(.[essential_nfis],na.rm=TRUE)>=3,2,
                               ifelse(rowSums(.[essential_nfis],na.rm=TRUE)>=1,1,0)),
       si.wash.defec=ifelse(defecate_where.opn_defecation==TRUE,2,
                            ifelse(defecate_where.communal_latrine==TRUE|
@@ -77,7 +77,7 @@ refugee_severity_bgd_msna18<-function(hh,ind){
       si.wash.drnk_dom_water=ifelse(dom_water_pppd<3,2,
                                     ifelse(dom_water_pppd<15,1,0)),
       si.wash.garbage_disp= ifelse(garbage_disposal %in% c( "burn", "bury", "into_stream"),2,0),
-      si.improved_water= ifelse(drnk_wat %in% protected_water_sources,0,2)
+      si.wash.improved_water= ifelse(drnk_wat %in% protected_water_sources,0,2)
     ) %>% select(instance_name, starts_with("si."))
   
   
