@@ -57,7 +57,7 @@ more_individual_to_HH<-df %>%
                                    ifelse(sum(individual_illness=="yes",na.rm=TRUE)>1,2,0)),
     si.protection_missing_child=ifelse(sum(missing_child=="yes",na.rm=TRUE)>0,2,
                                        ifelse(is.na(sum(missing_child=="yes")),0,0)),
-    si.birthplace=ifelse(sum(born1=="home",na.rm=TRUE)>0,2,1),
+    si.health_birthplace=ifelse(sum(born1=="home",na.rm=TRUE)>0,2,1),
     si.health_dia=ifelse(mean(no_dia,na.rm=TRUE)==1, 0,ifelse(sum(yes_dia_with_treat,na.rm=TRUE)==sum(yes_dia,na.rm=TRUE),1,2))
     
   ) %>% select(instance_name,starts_with("si.")) 
@@ -121,8 +121,8 @@ hh_level<-hhy %>%
     si.wash_visible_feces=ifelse(visible_faeces=="yes",2,0),
     si.ios.preg=ifelse(pregnant_women==0| is.na(pregnant_women),0,2),
     si.ios.health_worker= ifelse(comm_health_worker=="yes",1, ifelse(comm_health_worker %in% c("no","dont_know"),2,NA)),
-    si.access.feedback=ifelse(provide_feedback.dont_know==TRUE,2,0),
-    si.ios.edu= ifelse(is.na(edu_aid_material)|edu_aid_material=="yes",1,2),
+    si.access_feedback=ifelse(provide_feedback.dont_know==TRUE,2,0),
+    si.ios_edu= ifelse(is.na(edu_aid_material)|edu_aid_material=="yes",1,2),
     edu_barrier_yn= ifelse(boy_prim_edu_barrier+ 
                              girl_prim_edu_barrier+
                              boy_second_edu_barrier+
@@ -130,7 +130,7 @@ hh_level<-hhy %>%
     wash_barrier_yn= ifelse(hh_water_problem=="yes",1,0),
     health_barrier_yn=ifelse(health_access=="yes",1,0),
     barrier_edu_wash_health=edu_barrier_yn+wash_barrier_yn+health_barrier_yn,
-    si.barrier_wash=ifelse(barrier_edu_wash_health>2,2,ifelse(barrier_edu_wash_health>0,1,ifelse(barrier_edu_wash_health==0,0,NA)))
+    si.access_wash_edu_health=ifelse(barrier_edu_wash_health>2,2,ifelse(barrier_edu_wash_health>0,1,ifelse(barrier_edu_wash_health==0,0,NA)))
   ) %>% select(instance_name,starts_with("si."))
 
 
