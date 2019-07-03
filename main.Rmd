@@ -13,35 +13,54 @@ knitr::opts_chunk$set(echo = FALSE,
 library(dplyr)
 library(hypegrammaR)
 library(kableExtra)
-
 source("functions.R")
 source("severity.R")
+source("refugee_severity_bgd_msna18.R")
+#'  READ INPUT FILES
 
-#'  READ ALL INPUTS
-host_assessment <- load_assessment(data_csv = "./input/csv/hc_data_hh.csv",
-                           questions_csv = "./input/csv/questions_hc.csv" ,
-                           choices_csv = "./input/csv/choices_hc.csv",
-                           samplingframe_csv = "./input/csv/samplingframe.csv",
+host_assessment <- load_assessment(data_csv = "./input/HCMSNA_csv/hc_data_hh.csv",
+                         questions_csv = "./input/HCMSNA_csv/questions_hc.csv" ,
+                           choices_csv = "./input/HCMSNA_csv/choices_hc.csv",
+                           samplingframe_csv = "./input/HCMSNA_csv/samplingframe.csv",
                            data.stratum.column = "union_name",
                            sampling.frame.population.column = "NbHH",
-                           sampling.frame.stratum.column = "union_id")
+                           sampling.frame.stratum.column = "union_id",
+                         
+                           default_disaggregation = "union_name",
+                           asdf = "xasdf")
 
 
-host_hh_data<-assessment$data
-host_questionnaire<-assessment$questionnaire
-host_weighting<-assessment$weighting
+refugee_assessment <- load_assessment(data_csv = "./input/RefugeeMSNA_csv/Refugee_MSNA_HH.csv",
+                                      loops_csv = c(individuals = "./input/RefugeeMSNA_csv/Refugee_MSNA_Indiv_Data.csv"),
+                                      questions_csv = "./input/RefugeeMSNA_csv/questions_refugee.csv" ,
+                                      choices_csv = "./input/RefugeeMSNA_csv/choices_refugee.csv",
+                                      samplingframe_csv = "./input/RefugeeMSNA_csv/samplingframe_refugee.csv",
+                                      data.stratum.column = "camp_location",
+                                      sampling.frame.population.column = "Total.Families",
+                                      sampling.frame.stratum.column = "Camps",
+                                      
+                                      default_disaggregation = "camp_location")
 
+
+
+
+# remove non-consent
+refugee_assessment$data <- refugee_assessment$data[refugee_assessment$data$survey_consent=="yes",]
 
 # CALCULATE SEVERITY 
-host_data$overall_severity <- hc_severity(data,questionnaire)
 
+host_assessment$data$overall_severity <- hc_severity(host_assessment$data,
+                                                     host_assessment$questionnaire)
 
+refugee_assessment$severity <- refugee_severity_bgd_msna18(hh  = refugee_assessment$data,
+                                                           ind = refugee_assessment$loops$individuals)
+
+refugee_assessment$data$overall_severity <- refugee_assessment$severity$si.fsl
+# PARAMETERS
+
+attach(refugee_assessment)
   
 ```
-
-
-
-
 
 
 
@@ -53,12 +72,12 @@ host_data$overall_severity <- hc_severity(data,questionnaire)
 
 Distribution of severity:
 
-```{r}
+```{r,fig.height = 20}
 
 ggplot(data)+
-  geom_density(aes(x=overall_severity))+
+  geom_bar(aes(x=overall_severity))+
   theme_minimal()+
-  facet_grid(rows = vars(union_name))
+  facet_grid(rows = vars(data[[default_disaggregation]]))
 
 
 ```
@@ -75,12 +94,12 @@ type_of_analysis<-map_to_case("group_difference",
                   independent.var.type = "categorical")
 
 
-severity_by_union <- map_to_result(data,dependent.var = "overall_severity",
-              "union_name",
-              case = type_of_analysis,
-              weighting = weighting)
+severity_disaggregated <- map_to_result(data,dependent.var = "overall_severity",
+                                        independent.var = default_disaggregation,
+                                        case = type_of_analysis,
+                                        weighting = weighting)
 
-severity_by_union %>%
+severity_disaggregated %>%
   map_to_labeled(questionnaire) %>% 
   map_to_table %>% kable %>% kable_styling()
 
@@ -89,8 +108,8 @@ severity_by_union %>%
 
 ```{r}
 
-severity_by_union %>%
-  map_to_labeled(host_hh_questionnaire) %>% 
+severity_disaggregated %>%
+  map_to_labeled(questionnaire) %>% 
   map_to_visualisation %>% .$ggplot
 
 
@@ -98,7 +117,7 @@ severity_by_union %>%
 
 ### Distribution - How 'varied' are the scores?
 ```{r}
-design<-map_to_design(host_hh,weighting_function =  host_weighting)
+design<-map_to_design(data,weighting_function =  weighting)
 standard_deviation <- sqrt(survey::svyvar(~overall_severity,design)[1])
 ```
 The overall standard deviation was <b> `r standard_deviation` </b>
@@ -109,7 +128,7 @@ The overall standard deviation was <b> `r standard_deviation` </b>
 ```
 
 ```{r}
-ecdf <- weighted_ecdf(host_hh$overall_severity, host_weighting(host_hh))
+ecdf <- weighted_ecdf(data$overall_severity, weighting(data))
 
 ggplot(ecdf, aes(x, cum.pct)) + geom_line() + theme_minimal() + ylab("Cummulative probability") + xlab("Score")
 
