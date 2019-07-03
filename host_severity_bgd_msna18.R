@@ -137,3 +137,4 @@ host_severity_bgd_msna18<-function(hh,ind){
   hh_level %>% colnames()
   dl<-list(hh_level,more_individual_to_HH,Individual_to_HH)
   all_indis<-Reduce(function(x, y) merge(x, y, all=TRUE), dl)}
+
