@@ -28,15 +28,6 @@ standardise_data<-function(data,data.stratum.column){
 }
 
 
-weighted_ecdf<-function(x,weights){
-  df<-tibble(x=x,w=weights)
-  df <- df[order(df$x), ]  # Won't change anything since it was created sorted
-  cum.pct <- cumsum(x * weights) / sum(x * weights)
-  df$cum.pct <- with(df, cumsum(x * w) / sum(x * w))
-  df
-}
-
-
 
 load_assessment<-function(data_csv,
                           loops_csv = c(),
@@ -96,3 +87,10 @@ return(c(list(data=data,
 
 
 }
+
+
+remove_non_consent<-function(data,consent_col = "survey_consent", consent_value = "yes"){
+  data[data[[consent_col]]=="yes",,drop = FALSE]
+}
+
+

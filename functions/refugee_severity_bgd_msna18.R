@@ -89,9 +89,9 @@ refugee_severity_bgd_msna18<-function(hh,ind){
       si.wash.garbage_disp= ifelse(garbage_disposal %in% c( "burn", "bury", "into_stream"),2,0),
       si.wash.improved_water= ifelse(drnk_wat %in% protected_water_sources,0,2),
       marriage_burden_reduce= ifelse(is.na(child_marriage_reasons.reduce_burden),FALSE,child_marriage_reasons.reduce_burden),
-      si.capacity_gap_child_marriage_reduce_burden= ifelse(marriage_burden_reduce==TRUE,2, 0),
+      si.capacity_gap.child_marriage_reduce_burden= ifelse(marriage_burden_reduce==TRUE,2, 0),
       debt_amount_recode=ifelse(is.na(debt_amount),0,debt_amount),
-      si.capacity_gaps_debt= ifelse(debt_amount_recode>=25000,2,ifelse(debt_amount_recode>=10000,1,ifelse(is.na(debt_amount_recode),0,0))),
+      si.capacity_gap.debt= ifelse(debt_amount_recode>=25000,2,ifelse(debt_amount_recode>=10000,1,ifelse(is.na(debt_amount_recode),0,0))),
       health.preg= ifelse(is.na(anc_group.pregnant_number),0,anc_group.pregnant_number),
       health.anc=ifelse(is.na(anc_group.pregnant_anc),0,anc_group.pregnant_anc),
       si.health.preg= ifelse(health.preg<1,0,ifelse(health.preg>health.anc,2,0))
@@ -109,7 +109,7 @@ refugee_severity_bgd_msna18<-function(hh,ind){
   
 
   
-  subpillar_scores <- subpillar_scores_from_xls(  file =  "./input/decision_tree_refugees.xlsx",
+  subpillar_scores <- subpillar_scores_from_xls_bgd(  file =  "./input_public/refugee_combinations_JIAF.xlsx",
                               subpillars = subpillars<-c(
                                 "edu",
                                 "nfi",

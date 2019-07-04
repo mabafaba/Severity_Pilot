@@ -2,85 +2,60 @@
 title: "pilot"
 author: "REACH BGD"
 date: "2 July 2019"
-output: html_document
+output:
+  html_document:
+    code_folding: hide
+    toc: true
 ---
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
 group<-c("host","refugee")[2]
 
-knitr::opts_chunk$set(echo = FALSE,
+knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
                       warning = FALSE)
 library(dplyr)
 library(hypegrammaR)
 library(kableExtra)
 library(msni19)
-source("functions.R")
-source("severity.R")
-source("refugee_severity_bgd_msna18.R")
-source("host_severity_bgd_msna18.R")
-source("decision_trees.R")
+library(glue)
+source("functions/utilities.R")
+source("functions/loading_inputs.R")
+source("functions/severity.R")
+source("functions/refugee_severity_bgd_msna18.R")
+source("functions/host_severity_bgd_msna18.R")
+source("functions/decision_trees.R")
+source("functions/plots.R")
+source("functions/non_generalisable_load_inputs.R")
 
 #'  READ INPUT FILES
 
-host_assessment <- load_assessment(data_csv = "./input/HCMSNA_csv/HC_HH_Data.csv",
-                                   loops_csv = c(individuals = "./input/HCMSNA_csv/HC_Indiv_Data.csv"),
-                         questions_csv = "./input/HCMSNA_csv/questions_hc.csv" ,
-                           choices_csv = "./input/HCMSNA_csv/choices_hc.csv",
-                           samplingframe_csv = "./input/HCMSNA_csv/samplingframe.csv",
-                           data.stratum.column = "union_name",
-                           sampling.frame.population.column = "NbHH",
-                           sampling.frame.stratum.column = "union_id",
-                         
-                           default_disaggregation = "union_name",
-                           asdf = "xasdf")
+
+group<-"refugee"
 
 
-refugee_assessment <- load_assessment(data_csv = "./input/RefugeeMSNA_csv/Refugee_MSNA_HH.csv",
-                                      loops_csv = c(individuals = "./input/RefugeeMSNA_csv/Refugee_MSNA_Indiv_Data.csv"),
-                                      questions_csv = "./input/RefugeeMSNA_csv/questions_refugee.csv" ,
-                                      choices_csv = "./input/RefugeeMSNA_csv/choices_refugee.csv",
-                                      samplingframe_csv = "./input/RefugeeMSNA_csv/samplingframe_refugee.csv",
-                                      data.stratum.column = "camp_location",
-                                      sampling.frame.population.column = "Total.Families",
-                                      sampling.frame.stratum.column = "Camps",
-                                      
-                                      default_disaggregation = "camp_location")
+assessment<-bgd_severity_plot_load_assessment(group)
 
 
+# set the function to be used for severity calculation
+if(group=="host") severity_compositions <- host_severity_bgd_msna18
+if(group == "refugee") severity_compositions <- refugee_severity_bgd_msna18
 
 
-# remove non-consent
-refugee_assessment$data <- refugee_assessment$data[refugee_assessment$data$survey_consent=="yes",]
-host_assessment$data <- host_assessment$data[host_assessment$data$survey_consent=="yes",]
+assessment$data %<>% remove_non_consent
+
+assessment$severity <- severity_compositions(hh  = assessment$data,
+                                             ind = assessment$loops$individuals)
 
 
-
-# CALCULATE SEVERITY 
-
-host_assessment$severity <- host_severity_bgd_msna18(hh = host_assessment$data,
-                                                     host_assessment$loops$individuals)
-
-host_assessment$data$overall_severity<-host_assessment$severity$si.ios.health_worker
+# msni not existent yet so randomising
+assessment$data$msni<-sample(1:4,nrow(assessment$data),T)
 
 
+# everything below happening inside "assessment", so attaching for brevity:
+attach(assessment)
 
-
-refugee_assessment$severity <- refugee_severity_bgd_msna18(hh  = refugee_assessment$data,
-                                                           ind = refugee_assessment$loops$individuals)
-
-
-
-refugee_assessment$data$overall_severity<-refugee_assessment$severity$health
-
-
-
-if(group=="host"){
-attach(host_assessment)  
-}else{
-  attach(refugee_assessment)
-}
 
   
 ```
@@ -95,12 +70,11 @@ attach(host_assessment)
 
 Distribution of severity:
 
-```{r,fig.height = 20}
+```{r,fig.height = 20,fig.width = 5}
 
-ggplot(data)+
-  geom_bar(aes(x=overall_severity))+
-  theme_minimal()+
-  facet_grid(rows = vars(data[[default_disaggregation]]))
+faceted_density_plot(assessment$data,
+                     x_variable_name = "msni",
+                     default_disaggregation)
 
 ```
 
@@ -116,7 +90,7 @@ type_of_analysis<-map_to_case("group_difference",
                   independent.var.type = "categorical")
 
 
-severity_disaggregated <- map_to_result(data,dependent.var = "overall_severity",
+severity_disaggregated <- map_to_result(data,dependent.var = "msni",
                                         independent.var = default_disaggregation,
                                         case = type_of_analysis,
                                         weighting = weighting)
@@ -140,19 +114,18 @@ severity_disaggregated %>%
 ### Distribution - How 'varied' are the scores?
 ```{r}
 design<-map_to_design(data,weighting_function =  weighting)
-standard_deviation <- sqrt(survey::svyvar(~overall_severity,design)[1])
+standard_deviation <- sqrt(survey::svyvar(~msni,design)[1])
 ```
 The overall standard deviation was <b> `r standard_deviation` </b>
-```{r}
-
-
-
-```
 
 ```{r}
-ecdf <- weighted_ecdf(data$overall_severity, weighting(data))
+ecdf <- weighted_ecdf(data$msni, weighting(data))
 
-ggplot(ecdf, aes(x, cum.pct)) + geom_line() + theme_minimal() + ylab("Cummulative probability") + xlab("Score")
+ggplot(ecdf, aes(x, cum.pct)) +
+  geom_line() + 
+  theme_minimal() + 
+  ylab("Cummulative probability") + 
+  xlab("Score")
 
 ```
 
@@ -165,9 +138,13 @@ ggplot(ecdf, aes(x, cum.pct)) + geom_line() + theme_minimal() + ylab("Cummulativ
 
 Missing values in composite indicators
 ```{r}
-percent_na<-function(x){(length(which(is.na(x)))/length(x)) %>% multiply_by(100) %>% round(3) %>% paste("%")}
+
 percent_na_sev<-severity[,-1] %>% lapply(percent_na) %>% unlist
-data.frame(`composite variable` = names(severity[,-1]),`percent NA` = percent_na_sev, check.names = FALSE) %>% kable %>% kable_styling()
+data.frame(`composite variable` = names(severity[,-1]),
+           `percent NA` = percent_na_sev,
+           check.names = FALSE) %>%
+  kable %>%
+  kable_styling()
 ```
 
 ## Conclusion
