@@ -12,18 +12,28 @@ refugee_severity_bgd_msna18<-function(hh,ind){
       worked= ifelse(individual_worked== "yes",1,0),
       worked_over18= ifelse(individual_age>17 & individual_worked=="yes",1,0),
       worked_under18= ifelse(individual_age<18 & individual_worked=="yes",1,0),
+      dia= ifelse(is.na(under5_diarrhea), "no", under5_diarrhea),
+      dia_trt_ors_home= ifelse(is.na(df$under5_ors.yes_home),"NOT_RELEVANT", df$under5_ors.yes_home),
+      dia_trt_ors_healhcare= ifelse(is.na(df$under5_ors.yes_healthcare),"NOT_RELEVANT", df$under5_ors.yes_healthcare),
+      dia_no_ors= ifelse(dia=="yes" &  (dia_trt_ors_home=="FALSE" | dia_trt_ors_healhcare=="FALSE"),1,0),
+      dia_yes_ors= ifelse(dia=="yes" &  (dia_trt_ors_home=="TRUE" | dia_trt_ors_healhcare=="TRUE"),1,0),
+      child_lab_none=ifelse(is.na(childlabour_worstforms.none),TRUE,FALSE)
     ) %>% 
     group_by(instance_name) %>% 
     summarise(
+      
       #COUNT-IF ANSWER =...  IF FAMILY HAS >0 KIDS IN SCHOOL THEY 
+      
       si.edu.learning_space_attendance=ifelse(sum(learning_space_attendance=="no",na.rm=TRUE)>=3,2, ifelse(sum(learning_space_attendance=="no",na.rm=TRUE)>=1,1,0)),
       si.edu.non_religious_learning=ifelse(sum(religious_space_attendance=="no",na.rm=TRUE)>=3,2, ifelse(sum(religious_space_attendance=="no",na.rm=TRUE)>=1,1,0)),
       si.nfi.mosquito_net=ifelse(sum(under5_mosquito_net=="no", na.rm=TRUE)>1,2 ,ifelse(sum(under5_mosquito_net=="yes", na.rm=TRUE)>0,1,0)),
       si.health.illness.serious=ifelse(sum(individual_illness=="yes", na.rm=TRUE)>1,2 ,ifelse(sum(individual_illness=="yes", na.rm=TRUE)>0,1,0)),
+      si.health.dia_ors=ifelse(sum(dia_no_ors,na.rm=TRUE)>0,2,ifelse(sum(dia_yes_ors,na.rm=TRUE)==sum(dia=="yes",na.rm=TRUE),1,0)),
       worked_adults= ifelse(sum(worked_over18,na.rm=TRUE)>0,1,0),
       worked_kids= ifelse(sum(worked_under18,na.rm=TRUE)>0,1,0 ),
       food_recieved1= unique(food_received),
-      no_one_worked= ifelse(sum(worked,na.rm=TRUE)<1,1,0)
+      no_one_worked= ifelse(sum(worked,na.rm=TRUE)<1,1,0),
+      si.capacity_gap.child_lab_bad= ifelse(sum(child_lab_none==FALSE,na.rm=TRUE)>0,2,0)
       
     ) %>% 
     mutate(
@@ -77,7 +87,14 @@ refugee_severity_bgd_msna18<-function(hh,ind){
       si.wash.drnk_dom_water=ifelse(dom_water_pppd<3,2,
                                     ifelse(dom_water_pppd<15,1,0)),
       si.wash.garbage_disp= ifelse(garbage_disposal %in% c( "burn", "bury", "into_stream"),2,0),
-      si.wash.improved_water= ifelse(drnk_wat %in% protected_water_sources,0,2)
+      si.wash.improved_water= ifelse(drnk_wat %in% protected_water_sources,0,2),
+      marriage_burden_reduce= ifelse(is.na(child_marriage_reasons.reduce_burden),FALSE,child_marriage_reasons.reduce_burden),
+      si.capacity_gap_child_marriage_reduce_burden= ifelse(marriage_burden_reduce==TRUE,2, 0),
+      debt_amount_recode=ifelse(is.na(debt_amount),0,debt_amount),
+      si.capacity_gaps_debt= ifelse(debt_amount_recode>=25000,2,ifelse(debt_amount_recode>=10000,1,ifelse(is.na(debt_amount_recode),0,0))),
+      health.preg= ifelse(is.na(anc_group.pregnant_number),0,anc_group.pregnant_number),
+      health.anc=ifelse(is.na(anc_group.pregnant_anc),0,anc_group.pregnant_anc),
+      si.health.preg= ifelse(health.preg<1,0,ifelse(health.preg>health.anc,2,0))
     ) %>% select(instance_name, starts_with("si."))
   
   
