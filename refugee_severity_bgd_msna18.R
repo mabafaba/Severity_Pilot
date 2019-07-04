@@ -61,8 +61,8 @@ refugee_severity_bgd_msna18<-function(hh,ind){
   
   hh_level_indicators<-hhy%>% 
     mutate(
-      si.protect.lighting=ifelse(lighting_availability=="yes", 2,0),
-      si.protect.unsafe=ifelse(rowSums(.[unsafe_location_cols],na.rm=TRUE)>8,2,
+      si.protection.lighting=ifelse(lighting_availability=="yes", 2,0),
+      si.protection.unsafe=ifelse(rowSums(.[unsafe_location_cols],na.rm=TRUE)>8,2,
                                ifelse(rowSums(.[unsafe_location_cols],na.rm = TRUE)>4,1,0)),
       si.nfi.shelt_damage= ifelse(shelter_damage.roof_destroyed=="yes"| shelter_damage.wall_destroyed=="yes",2,
                                   ifelse((shelter_damage.roof_damaged=="yes"|shelter_damage.wall_damaged=="yes")& (shelter_damage.roof_destroyed=="no"|
