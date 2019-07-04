@@ -10,7 +10,7 @@ host_severity_bgd_msna18<-function(hh,ind){
       working_adult=ifelse(individual_work=="yes" & individual_age>=18,1,0),
       not_in_formal_school =  formal_learn_space=="none",
       not_in_nonformal_school = nonformal_learn_space=="none",
-      not_in_any_school =  not_in_formal_school & not_in_nonformal_school,
+      not_in_any_school =  not_in_formal_school & not_in_nonformal_school
       
     ) %>% 
     
@@ -22,7 +22,7 @@ host_severity_bgd_msna18<-function(hh,ind){
       num_not_in_any_school = sum.na.rm(not_in_any_school),
       num_working_adult= sum.na.rm(working_adult),
       num_working_child=sum.na.rm(working_child),
-      num_working_anyone=sum.na.rm(working_anyone),
+      num_working_anyone=sum.na.rm(working_anyone)
       
     ) %>% 
     mutate(
@@ -38,7 +38,7 @@ host_severity_bgd_msna18<-function(hh,ind){
     select(instance_name, starts_with("si."))
   
   
-  
+    
   more_individual_to_HH<-df %>% 
     mutate(
       born1=ifelse(is.na(birth_place), "no_baby", birth_place),

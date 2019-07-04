@@ -7,15 +7,21 @@ output: html_document
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
+group<-c("host","refugee")[2]
+
 knitr::opts_chunk$set(echo = FALSE,
                       message=FALSE,
                       warning = FALSE)
 library(dplyr)
 library(hypegrammaR)
 library(kableExtra)
+library(msni19)
 source("functions.R")
 source("severity.R")
 source("refugee_severity_bgd_msna18.R")
+source("host_severity_bgd_msna18.R")
+source("decision_trees.R")
+
 #'  READ INPUT FILES
 
 host_assessment <- load_assessment(data_csv = "./input/HCMSNA_csv/HC_HH_Data.csv",
@@ -29,7 +35,7 @@ host_assessment <- load_assessment(data_csv = "./input/HCMSNA_csv/HC_HH_Data.csv
                          
                            default_disaggregation = "union_name",
                            asdf = "xasdf")
-View(host_assessment$data)
+
 
 refugee_assessment <- load_assessment(data_csv = "./input/RefugeeMSNA_csv/Refugee_MSNA_HH.csv",
                                       loops_csv = c(individuals = "./input/RefugeeMSNA_csv/Refugee_MSNA_Indiv_Data.csv"),
@@ -49,10 +55,14 @@ refugee_assessment <- load_assessment(data_csv = "./input/RefugeeMSNA_csv/Refuge
 refugee_assessment$data <- refugee_assessment$data[refugee_assessment$data$survey_consent=="yes",]
 host_assessment$data <- host_assessment$data[host_assessment$data$survey_consent=="yes",]
 
+
+
 # CALCULATE SEVERITY 
 
 host_assessment$severity <- host_severity_bgd_msna18(hh = host_assessment$data,
                                                      host_assessment$loops$individuals)
+
+host_assessment$data$overall_severity<-host_assessment$severity$si.ios.health_worker
 
 
 
@@ -60,15 +70,24 @@ host_assessment$severity <- host_severity_bgd_msna18(hh = host_assessment$data,
 refugee_assessment$severity <- refugee_severity_bgd_msna18(hh  = refugee_assessment$data,
                                                            ind = refugee_assessment$loops$individuals)
 
-# PARAMETERS
 
-attach(refugee_assessment)
+
+refugee_assessment$data$overall_severity<-refugee_assessment$severity$health
+
+
+
+if(group=="host"){
+attach(host_assessment)  
+}else{
+  attach(refugee_assessment)
+}
+
   
 ```
 
 
 
-# Severity Scoring Pilot
+# Severity Scoring Pilot `r ifelse(group=="host","Host Community", "Refugees")`
 
 ## Summary
 
@@ -82,7 +101,6 @@ ggplot(data)+
   geom_bar(aes(x=overall_severity))+
   theme_minimal()+
   facet_grid(rows = vars(data[[default_disaggregation]]))
-
 
 ```
 
@@ -141,6 +159,16 @@ ggplot(ecdf, aes(x, cum.pct)) + geom_line() + theme_minimal() + ylab("Cummulativ
 ## Results
 
 ## Methodology
+
+
+## Sensitivity and Robustness
+
+Missing values in composite indicators
+```{r}
+percent_na<-function(x){(length(which(is.na(x)))/length(x)) %>% multiply_by(100) %>% round(3) %>% paste("%")}
+percent_na_sev<-severity[,-1] %>% lapply(percent_na) %>% unlist
+data.frame(`composite variable` = names(severity[,-1]),`percent NA` = percent_na_sev, check.names = FALSE) %>% kable %>% kable_styling()
+```
 
 ## Conclusion
 

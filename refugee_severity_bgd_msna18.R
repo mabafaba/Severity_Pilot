@@ -71,8 +71,8 @@ refugee_severity_bgd_msna18<-function(hh,ind){
   
   hh_level_indicators<-hhy%>% 
     mutate(
-      si.protect.lighting=ifelse(lighting_availability=="yes", 2,0),
-      si.protect.unsafe=ifelse(rowSums(.[unsafe_location_cols],na.rm=TRUE)>8,2,
+      si.protection.lighting=ifelse(lighting_availability=="yes", 2,0),
+      si.protection.unsafe=ifelse(rowSums(.[unsafe_location_cols],na.rm=TRUE)>8,2,
                                ifelse(rowSums(.[unsafe_location_cols],na.rm = TRUE)>4,1,0)),
       si.nfi.shelt_damage= ifelse(shelter_damage.roof_destroyed=="yes"| shelter_damage.wall_destroyed=="yes",2,
                                   ifelse((shelter_damage.roof_damaged=="yes"|shelter_damage.wall_damaged=="yes")& (shelter_damage.roof_destroyed=="no"|
@@ -101,6 +101,27 @@ refugee_severity_bgd_msna18<-function(hh,ind){
   dl<-list(indiv_to_hh,hh_level_indicators)
     
   hh_indicators_combined<-Reduce(function(x, y) merge(x, y, all=TRUE), dl)
-  hh_indicators_combined[,-1]<-lapply(hh_indicators_combined[,-1],as.numeric)
-  hh_indicators_combined
+  hh_indicators_combined[,-1]<-lapply(hh_indicators_combined[,-1],as.numeric) %>% as_tibble
+  
+  
+  
+  
+  
+
+  
+  subpillar_scores <- subpillar_scores_from_xls(  file =  "./input/decision_tree_refugees.xlsx",
+                              subpillars = subpillars<-c(
+                                "edu",
+                                "nfi",
+                                "fsl",
+                                "health",
+                                "protection"
+                                # ,
+                                # "ios",
+                                # "wash"
+                              ),
+                              data = hh_indicators_combined)
+  
+  return(c(subpillar_scores,hh_indicators_combined) %>% as_tibble)
+  
 }

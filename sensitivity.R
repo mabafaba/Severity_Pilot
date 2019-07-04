@@ -1,6 +1,11 @@
 
 
 
+
+
+#' create variations of a dataset
+#' @param variable a name in the dataset. Each unique repsonse in the variable will create a variation in which the whole variable has that one response
+#' @return a list of datasets same shape as input but variables varied
 vary_dataset<-function(data, variables){
   
   
@@ -30,13 +35,7 @@ vary_dataset<-function(data, variables){
 
 
 
-
-
-
-
-
-
-
+#' create tables of all existing result combinations of sub indicators
 all_combinations<-function(severity){
 
 
@@ -47,10 +46,11 @@ all_combinations<-function(severity){
                      lapply(function(x){x[2]}) %>% unlist,
                    stringsAsFactors = FALSE)
   vars<-vars[!is.na(vars$varname) & !is.na(vars$sector),]
+  sector<-"health"
   combinations<-purrr::map(unique(vars$sector),function(sector){
     sector_varnames<-vars[which(vars$sector==sector),"varname"]
-    severity[,sector_varnames] %>%
-      lapply(unique) %>% expand.grid   
+    severity[,sector_varnames,drop = F] %>%
+      lapply(unique) %>% lapply(function(x){x[!is.na(x)]}) %>% expand.grid   
   })
 
   names(combinations)<-unique(vars$sector)    
@@ -58,19 +58,17 @@ combinations
 
 }
 
-host_assessment
-all_combos<-all_combinations(severity = host_assessment$severity) 
-library(purrr)
 
 
-map2(all_combos,paste0(names(all_combos),".csv"),write.csv)
-getwd()
+# dir.create("./output/host",recursive = T)
+# dir.create("./output/refugee",recursive = T)
+# unlink(list.files("./output"),recursive = T)
+# host_combos<-all_combinations(host_assessment$severity)
+# ref_combos<-all_combinations(refugee_assessment$severity)
+# map2(host_combos,paste0("./output/host/",names(host_combos),".csv"),write.csv, row.names = FALSE)
+# map2(ref_combos,paste0("./output/refugee/",names(ref_combos),".csv"),write.csv, row.names = FALSE)
 
 
-
-
-
-all_combos$health
 variations<-vary_dataset(refugee_assessment$data,
                          c("soap_in_hh", "formula_received"))
 
