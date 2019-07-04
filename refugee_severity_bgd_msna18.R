@@ -26,7 +26,7 @@ refugee_severity_bgd_msna18<-function(hh,ind){
       
       si.edu.learning_space_attendance=ifelse(sum(learning_space_attendance=="no",na.rm=TRUE)>=3,2, ifelse(sum(learning_space_attendance=="no",na.rm=TRUE)>=1,1,0)),
       si.edu.non_religious_learning=ifelse(sum(religious_space_attendance=="no",na.rm=TRUE)>=3,2, ifelse(sum(religious_space_attendance=="no",na.rm=TRUE)>=1,1,0)),
-      si.nfi.mosquito_net=ifelse(sum(under5_mosquito_net=="no", na.rm=TRUE)>1,2 ,ifelse(sum(under5_mosquito_net=="yes", na.rm=TRUE)>0,1,0)),
+      si.health.mosquito_net=ifelse(sum(under5_mosquito_net=="no", na.rm=TRUE)>1,2 ,ifelse(sum(under5_mosquito_net=="yes", na.rm=TRUE)>0,1,0)),
       si.health.illness.serious=ifelse(sum(individual_illness=="yes", na.rm=TRUE)>1,2 ,ifelse(sum(individual_illness=="yes", na.rm=TRUE)>0,1,0)),
       si.health.dia_ors=ifelse(sum(dia_no_ors,na.rm=TRUE)>0,2,ifelse(sum(dia_yes_ors,na.rm=TRUE)==sum(dia=="yes",na.rm=TRUE),1,0)),
       worked_adults= ifelse(sum(worked_over18,na.rm=TRUE)>0,1,0),
