@@ -15,11 +15,12 @@ knitr::opts_chunk$set(echo = FALSE,
 library(dplyr)
 library(hypegrammaR)
 library(kableExtra)
+library(msni19)
 source("functions.R")
 source("severity.R")
 source("refugee_severity_bgd_msna18.R")
 source("host_severity_bgd_msna18.R")
-
+source("decision_trees.R")
 
 #'  READ INPUT FILES
 
@@ -69,7 +70,10 @@ host_assessment$data$overall_severity<-host_assessment$severity$si.ios.health_wo
 refugee_assessment$severity <- refugee_severity_bgd_msna18(hh  = refugee_assessment$data,
                                                            ind = refugee_assessment$loops$individuals)
 
-refugee_assessment$data$overall_severity<-refugee_assessment$severity$si.fsl
+
+
+refugee_assessment$data$overall_severity<-refugee_assessment$severity$health
+
 
 
 if(group=="host"){

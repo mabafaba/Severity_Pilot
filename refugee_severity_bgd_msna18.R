@@ -101,6 +101,27 @@ refugee_severity_bgd_msna18<-function(hh,ind){
   dl<-list(indiv_to_hh,hh_level_indicators)
     
   hh_indicators_combined<-Reduce(function(x, y) merge(x, y, all=TRUE), dl)
-  hh_indicators_combined[,-1]<-lapply(hh_indicators_combined[,-1],as.numeric)
-  hh_indicators_combined
+  hh_indicators_combined[,-1]<-lapply(hh_indicators_combined[,-1],as.numeric) %>% as_tibble
+  
+  
+  
+  
+  
+
+  
+  subpillar_scores <- subpillar_scores_from_xls(  file =  "./input/decision_tree_refugees.xlsx",
+                              subpillars = subpillars<-c(
+                                "edu",
+                                "nfi",
+                                "fsl",
+                                "health",
+                                "protection"
+                                # ,
+                                # "ios",
+                                # "wash"
+                              ),
+                              data = hh_indicators_combined)
+  
+  return(c(subpillar_scores,hh_indicators_combined) %>% as_tibble)
+  
 }
