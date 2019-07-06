@@ -5,20 +5,22 @@
 #' @param subpillars character vector of subpillars; should match sheet names in `file`
 #' @param data the dataset/variables for which to compute the subpillars
 #' 
-subpillar_scores_from_xls_bgd<-function(file,subpillars,data){
-  
-condition_tables<-lapply(subpillars,
-                         xlsx::read.xlsx2,
-                         file =  file,
+subpillar_scores_from_csvs_bgd<-function(path_to_csvs,subpillars,data){
+
+filenames<-list.files(path_to_csvs) %>% paste0(path_to_csvs,"/",.)
+
+condition_tables<-lapply(filenames,
+                         read.csv,
                          stringsAsFactors = FALSE)
 
+pillar_names<-strsplit(filenames,"/") %>% lapply(last) %>% unlist %>% gsub("\\.csv","",.)
 
 subpillar_scores <- purrr::map(condition_tables,
            solve_combination_table_bgd,
            values_data = data) 
 
 subpillar_scores <- do.call(data.frame,c(subpillar_scores,stringsAsFactors = FALSE))
-names(subpillar_scores)<-subpillars
+names(subpillar_scores)<-pillar_names
 subpillar_scores %<>% as_tibble
 
 subpillar_scores

@@ -8,8 +8,6 @@ weighted_ecdf<-function(x,weights){
 }
 
 
-
-
 faceted_density_plot<-function(data, x_variable_name, facet_by_variable_name){
 
   if(x_variable_name %not a column in% data){

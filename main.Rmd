@@ -22,13 +22,10 @@ library(msni19)
 library(glue)
 
 source("functions/utilities.R")
-
 source("functions/loading_inputs.R")
-
 source("functions/severity_recoding_from_combination_table.R")
 source("functions/severity_recoding_host.R")
 source("functions/severity_recoding_refugee.R")
-
 source("functions/plots.R")
 
 #'  READ INPUT FILES
