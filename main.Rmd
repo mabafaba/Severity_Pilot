@@ -20,6 +20,7 @@ library(hypegrammaR)
 library(kableExtra)
 library(msni19)
 library(glue)
+library(ggmosaic)
 
 source("functions/utilities.R")
 source("functions/loading_inputs.R")
@@ -201,10 +202,42 @@ tests %<>% arrange(dif_significantly_smaller_05,desc(`average absolute differenc
 tests %>% select(`average absolute difference`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5`)
 tests$`Difference signifcantly smaller 0.5`<- tests$`Difference signifcantly smaller 0.5` %>% cell_spec(background = ifelse(tests$`Difference signifcantly smaller 0.5`=="Yes","green","red"),color = "white")
 tests %>% select(`average absolute difference`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5`) %>% kable(escape = FALSE) %>% kable_styling()
-library(ggmos)
+
+
+
+
+
+
 ```
 
+```{r mosaic plot}
 
+
+
+# Example of how the formula is built
+# 
+#     weight = 1
+#     x = product(Y, X)
+#     fill = W
+#     conds = product(Z)
+# 
+# These aesthetics set up the formula for the distribution:
+# 
+#     Formula: 1 ~ W + X + Y | Z
+
+msni_varied_and_original<-c(msni_varied,
+                            msni_original,
+                            tibble(camp_location=assessment$data$camp_location)) %>% as_tibble
+
+msni_varied_and_original<-gather(msni_varied_and_original,key = "key",value = 'value',-msni,-camp_location)
+msni_varied_and_original$weights<-weighting(msni_varied_and_original)
+msni_varied_and_original$value<-round(msni_varied_and_original$value,2)
+
+ggplot(msni_varied_and_original)+
+  geom_mosaic(aes(weight=weights,
+                  x=product(msni,value),fill = (msni)))+scale_fill_brewer(name = "actual MSNI score")+theme_minimal()+theme(axis.text.y = element_blank())+xlab("MSNI score with one indicator removed")+ylab("")
+
+```
 ## Conclusion
 
 

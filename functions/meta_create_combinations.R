@@ -24,7 +24,7 @@ all_combinations<-function(severity){
   
 }
 
-create_empty_combination_tables<-function(target_dir = "./output/"){
+create_empty_combination_tables<-function(target.dir = "./output/"){
     
     
     host_assessment <- load_assessment(data_csv = "./input/HCMSNA_csv/HC_HH_Data.csv",
