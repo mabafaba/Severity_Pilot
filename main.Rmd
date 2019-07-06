@@ -27,8 +27,10 @@ source("functions/severity_recoding_from_combination_table.R")
 source("functions/severity_recoding_host.R")
 source("functions/severity_recoding_refugee.R")
 source("functions/plots.R")
+source("./functions/sensitivity_utilities.R")
+source("./functions/sensitivity_indicator_inclusion.R")
 
-#'  READ INPUT FILES
+#  READ INPUT FILES
 
 assessment<-msna18_severity_pilot_load_assessment(group)
 
@@ -40,6 +42,16 @@ assessment$data %<>% remove_non_consent
 
 assessment$severity <- severity_compositions(hh  = assessment$data,
                                              ind = assessment$loops$individuals)
+
+
+combination_tables<-read_all_csvs("./input_public/threshold_definitions/refugees/")
+subpillar_scores <- subpillar_scores_bgd(list_of_combination_tables = combination_tables,
+                                                       data = assessment$severity)
+
+
+msni_varied<-msni_variations(combination_tables, assessment$severity)
+
+assessment$severity <- c(assessment$severity,subpillar_scores) %>% as_tibble
 
 # impact & capacity score guessed
 assessment$severity$impact <- 4
@@ -150,6 +162,48 @@ data.frame(`composite variable` = names(severity[,-1]),
   kable %>%
   kable_styling()
 ```
+
+
+### Sensitivity to Included Indicators
+
+```{r}
+
+# t-test: differences smaller 0.5 on average?
+
+# new dataframe: differences & stratum 
+msni_original<- tibble(msni = assessment$data$msni)
+msni_diffs <- msni_varied %>% purrr::map(function(x){abs(x-msni_original)-0.5}) %>% as_tibble
+names(msni_diffs)<-paste0("diff",1:ncol(msni_diffs))
+msni_diffs<- lapply(msni_diffs,unlist) %>% as.data.frame
+msni_diffs$camp_location<-assessment$data$camp_location
+
+
+# make survey design object
+design<-map_to_design(msni_diffs,
+                      weighting_function = weighting)
+
+# define test formulas:
+test_formulas<-sapply(paste0(names(msni_diffs),"~",0),formula)
+
+# run tests:
+tests<-lapply(test_formulas,svyttest,design = design)
+
+# which variations have average <-0.5?
+tests <- data.frame(sapply(tests,function(x){x$estimate}),sapply(tests,function(x){x$p.value}))
+names(tests)<- c("distance from 0.5 difference","p")
+tests$difference_smaller_05<-tests$`distance from 0.5 difference` < 0
+tests$p_bonferroni_corrected<-tests$p*nrow(tests)
+tests$dif_significantly_smaller_05<-tests$difference_smaller_05 & tests$p_bonferroni_corrected<0.01
+tests$`average absolute difference`<-tests$`distance from 0.5 difference`+0.5
+tests$`p value (Bonferroni corrected)`<-round(tests$p_bonferroni_corrected,5)
+tests$`Difference signifcantly smaller 0.5`<-tests$dif_significantly_smaller_05 %>% as.character %>% recode("TRUE" = "Yes","FALSE" = "No")
+tests %<>% arrange(dif_significantly_smaller_05,desc(`average absolute difference`))
+tests %>% select(`average absolute difference`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5`)
+tests$`Difference signifcantly smaller 0.5`<- tests$`Difference signifcantly smaller 0.5` %>% cell_spec(background = ifelse(tests$`Difference signifcantly smaller 0.5`=="Yes","green","red"),color = "white")
+tests %>% select(`average absolute difference`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5`) %>% kable(escape = FALSE) %>% kable_styling()
+library(ggmos)
+```
+
 
 ## Conclusion
 

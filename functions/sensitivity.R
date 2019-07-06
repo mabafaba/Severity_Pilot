@@ -41,3 +41,17 @@ severities<-variations %>% lapply(refugee_severity_bgd_msna18,
                                   refugee_assessment$loops$individuals)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -13,6 +13,8 @@ str_standardize<- function(name_string){
   str_replace_all(name_string, "[[:punct:]]", " ") %>% tolower() %>% trimws()
 }
 
+check_not_in< function(list one)
+
 # setwd("GitHub")
 
 getwd()
@@ -41,12 +43,26 @@ st<-c("camp 24","camp 25","camp 26","camp 27", "nayapara rc")
 hh$camp_location_standardized<-hh$camp_location %>% str_standardize() %>% str_replace_all(c("extn"= "extension"))
 cmp$camp_name_standardize<- cmp$New_Camp_N %>% str_standardize
 
+
 cmp$region<-ifelse(cmp$camp_name_standardize %in%  kbc, "Kutapalong",
        ifelse(cmp$camp_name_standardize %in% iso, "Isolated Camps","Southern Teknaf"))
+
+assessment$data$camp_location_standardize<-assessment$data$camp_location %>% str_standardize() %>% str_replace_all(c("extn"= "extension"))
+assessment$severity
+assessment$data %>% 
+  group_by(camp_location_standardize) %>%
+  summarize()
+
+
+
+svyttest( INCOME ~ GENDER , subset( example.survey , RELOCATE == 1 ) )
+
+
 
 # cmp$camp_name_matched<-str_replace_all(string = cmp$cmp_name, c(" "="_","extension"= "extn")) %>% tolower()
 # cmp$camp_name_matched[ which(cmp$camp_name_matched %in% hh$camp_location==FALSE)]
 
+hh$camp_location_standardized %in% hh$
 camp_name_matched
 unique(hh$camp_location)
 library(stringr)
