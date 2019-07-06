@@ -64,6 +64,7 @@ vary_combination_tables_thresholds <- function(combination_tables){
   }
   n<-10
   combinations<-tibble(pillar = rep(names(combination_tables),n),variable_name = rep(NA,n*length(names(combination_tables))))
+  combinations<-combinations %>% arrange(pillar)
   varied <- combinations %>% purrr::pmap(.f = vary_combination_table_once, combination_tables)
   
   names(varied)<-combinations$pillar
@@ -94,7 +95,8 @@ msni_variations<-function(combination_tables,severity,variation_function){
                  wash_lsg = subpillars$wash,
                  capacity_gaps = subpillars$capacity,impact = subpillars$impact)
   }) %>% do.call(cbind,.) %>% as_tibble 
-  
+  names(varied_msni)<-names(varied_combination_tables)
+   varied_msni %>% as_tibble(.name_repair = "universal")
 }
 
 

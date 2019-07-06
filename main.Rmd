@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
-group<-c("host","refugee")[1]
+group<-c("host","refugee")[2]
 
 knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
@@ -100,7 +100,7 @@ faceted_density_plot(assessment$data,
 
 ```
 
-The estimated severity in the host community:
+The estimated severity by location:
 
 
 
@@ -232,7 +232,7 @@ The index is robust towards all other indicators within the threshold of 0.5 poi
 
 stratum_tibble<-tibble(stratum=assessment$data[[default_disaggregation]])
 colnames(stratum_tibble)<-default_disaggregation
-msni_varied_and_original<-c(msni_varied,
+msni_varied_and_original<-c(msni_varied_indicators,
                             msni_original,
                             stratum_tibble) %>% as_tibble
 
@@ -256,7 +256,7 @@ We add random noise of varying strength to the expert decision of how the indica
 
 ```{r}
 # create variations and calculate msni
-msni_varied_indicators<-msni_variations(combination_tables, 
+msni_varied_thresholds<-msni_variations(combination_tables, 
                                         assessment$severity,
                                         variation_function = vary_combination_tables_thresholds)
 
@@ -276,20 +276,33 @@ msni_original<- tibble(msni = assessment$data$msni)
 
 
 sensitivity_test_table<- sensitivity_variation_test_result_table(msni_original = msni_original,
-                                        msni_varied = msni_varied_indicators,
+                                        msni_varied = msni_varied_thresholds,
                                         threshold = 0.5,
                                         strata_data_name = default_disaggregation,
                                         strata_data_values = data[[default_disaggregation]])
 
 sensitivity_test_table %>% kable(escape = FALSE) %>% kable_styling()
+```
+
+```{r}
 
 
+msni_varied_thresholds_with_original<-msni_varied_thresholds
+msni_varied_thresholds_with_original$original<-assessment$data$msni
+
+msni_varied_thresholds_long <- msni_varied_thresholds_with_original %>% gather("key","value", -original)
+msni_varied_thresholds_long$key<-gsub("\\.","",msni_varied_thresholds_long$key) %>% gsub("[0-9]","",.)
+ggplot(msni_varied_thresholds_long)+geom_bar(aes(x = value,fill = factor(original)),position = "dodge")+xlab("value with varied thresholds")+hypegrammaR:::scale_fill_reach_categorical(4,name = "original Score")+theme_minimal()
+
+diffs<-lapply(msni_varied_thresholds_with_original,function(x){x-unlist(msni_original)}) %>% as_tibble %>% gather("key","value",-original)
+diffs$key<-gsub("\\.","",msni_varied_thresholds_long$key) %>% gsub("[0-9]","",.)
+ggplot(diffs)+geom_bar(aes(x=value,fill=key))+hypegrammaR:::scale_fill_reach_categorical(8,name = "sub index Score")+theme_minimal()+xlab("Difference between original score and score with varied thresholds")
 ```
 
 
 
 
-```{r mosaic plot}
+```{r mosaic plot2}
 
 
 
@@ -306,7 +319,7 @@ sensitivity_test_table %>% kable(escape = FALSE) %>% kable_styling()
 
 stratum_tibble<-tibble(stratum=assessment$data[[default_disaggregation]])
 colnames(stratum_tibble)<-default_disaggregation
-msni_varied_and_original<-c(msni_varied,
+msni_varied_and_original<-c(msni_varied_thresholds,
                             msni_original,
                             stratum_tibble) %>% as_tibble
 
@@ -321,6 +334,8 @@ ggplot(msni_varied_and_original)+
 ```
 
 ```
+
+
 ## Conclusion
 
 
