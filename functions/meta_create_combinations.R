@@ -36,8 +36,7 @@ create_empty_combination_tables<-function(target_dir = "./output/"){
                                        sampling.frame.population.column = "NbHH",
                                        sampling.frame.stratum.column = "union_id",
                                        
-                                       default_disaggregation = "union_name",
-                                       asdf = "xasdf")
+                                       default_disaggregation = "union_name")
     
     
     refugee_assessment <- load_assessment(data_csv = "./input/RefugeeMSNA_csv/Refugee_MSNA_HH.csv",
@@ -59,18 +58,37 @@ create_empty_combination_tables<-function(target_dir = "./output/"){
     
     
     
-    refugee_assessment$severity <- refugee_severity_bgd_msna18(hh  = refugee_assessment$data,
-                                                               ind = refugee_assessment$loops$individuals)
-    
-    
-    
+    # refugee_assessment$severity <- refugee_severity_bgd_msna18(hh  = refugee_assessment$data,
+    #                                                            ind = refugee_assessment$loops$individuals)
+    # 
     dir.create(paste0(target.dir, "/", "host"),recursive = T)
     dir.create(paste0(target.dir, "/", "refugee"),recursive = T)
-    unlink(list.files(target_dir),recursive = T)
-    host_combos<-all_combinations(host_assessment$sevserity)
-    ref_combos<-all_combinations(refugee_assessment$severity)
-    map2(host_combos,paste0(paste0(target.dir, "/", "host/"),names(host_combos),".csv"),write.csv, row.names = FALSE)
-    map2(ref_combos,paste0(paste0(target.dir, "/", "refugee/"),names(ref_combos),".csv"),write.csv, row.names = FALSE)
+    unlink(list.files(target.dir),recursive = T)
+    combinations_by_sector_host<-all_combinations(host_assessment$severity)
+    combinations_by_sector_refugees<-all_combinations(refugee_assessment$severity)
+    
+    
+    
+    
+    
+    
+    target_filenames<-paste0(paste0(target.dir, "/", "host/"),
+                             names(combinations_by_sector_host),".csv")
+    
+    
+    purrr::map2(combinations_by_sector_host,
+                target_filenames,
+                write.csv, 
+                row.names = FALSE)
+    
+    
+    target_filenames<-paste0(paste0(target.dir, "/", "refugees/"),
+                             names(combinations_by_sector_refugees),".csv")
+    
+    purrr::map2(combinations_by_sector_refugees,
+                target_filenames,
+                write.csv,
+                row.names = FALSE)
     
     
     
