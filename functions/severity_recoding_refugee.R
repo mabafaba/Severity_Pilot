@@ -108,17 +108,15 @@ refugee_severity_bgd_msna18<-function(hh,ind){
   
   
 
-  
-  subpillar_scores <- subpillar_scores_from_xls_bgd(  file =  "./input_public/refugee_combinations_JIAF.xlsx",
+  subpillar_scores <- subpillar_scores_from_xls_bgd(  file =  "./input_public/threshold_definitions/refugee_combinations_JIAF.xlsx",
                               subpillars = subpillars<-c(
                                 "edu",
                                 "nfi",
                                 "fsl",
                                 "health",
-                                "protection"
-                                # ,
-                                # "ios",
-                                # "wash"
+                                "protection",
+                                "wash",
+                                "capacity"
                               ),
                               data = hh_indicators_combined)
   

@@ -10,7 +10,7 @@ host_severity_bgd_msna18<-function(hh,ind){
       working_adult=ifelse(individual_work=="yes" & individual_age>=18,1,0),
       not_in_formal_school =  formal_learn_space=="none",
       not_in_nonformal_school = nonformal_learn_space=="none",
-      not_in_any_school =  not_in_formal_school & not_in_nonformal_school,
+      not_in_any_school =  not_in_formal_school & not_in_nonformal_school
       
     ) %>% 
     
@@ -22,7 +22,7 @@ host_severity_bgd_msna18<-function(hh,ind){
       num_not_in_any_school = sum.na.rm(not_in_any_school),
       num_working_adult= sum.na.rm(working_adult),
       num_working_child=sum.na.rm(working_child),
-      num_working_anyone=sum.na.rm(working_anyone),
+      num_working_anyone=sum.na.rm(working_anyone)
       
     ) %>% 
     mutate(
@@ -138,12 +138,15 @@ host_severity_bgd_msna18<-function(hh,ind){
                                girl_second_edu_barrier>0,1,0),
       wash_barrier_yn= ifelse(hh_water_problem=="yes",1,0),
       health_barrier_yn=ifelse(health_access=="yes",1,0),
-      barrier_edu_wash_health=edu_barrier_yn+wash_barrier_yn+health_barrier_yn,
+      barrier_edu_wash_health=edu_barrier_yn+wash_barrier_yn+health_barrier_yn
       # si.ios.access_wash_education_health=ifelse(barrier_edu_wash_health>2,2,ifelse(barrier_edu_wash_health>0,1,ifelse(barrier_edu_wash_health==0,0,NA)))
     ) %>% select(instance_name,starts_with("si."))
   
   
   hh_level %>% colnames()
   dl<-list(hh_level,more_individual_to_HH,Individual_to_HH)
-  all_indis<-Reduce(function(x, y) merge(x, y, all=TRUE), dl)}
+  all_indis<-Reduce(function(x, y) merge(x, y, all=TRUE), dl)
+  
+  
+}
 

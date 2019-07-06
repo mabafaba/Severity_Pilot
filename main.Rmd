@@ -20,25 +20,21 @@ library(hypegrammaR)
 library(kableExtra)
 library(msni19)
 library(glue)
+
 source("functions/utilities.R")
+
 source("functions/loading_inputs.R")
-source("functions/severity.R")
-source("functions/refugee_severity_bgd_msna18.R")
-source("functions/host_severity_bgd_msna18.R")
-source("functions/decision_trees.R")
+
+source("functions/severity_recoding_from_combination_table.R")
+source("functions/severity_recoding_host.R")
+source("functions/severity_recoding_refugee.R")
+
 source("functions/plots.R")
-source("functions/non_generalisable_load_inputs.R")
 
 #'  READ INPUT FILES
 
+assessment<-msna18_severity_pilot_load_assessment(group)
 
-group<-"refugee"
-
-
-assessment<-bgd_severity_plot_load_assessment(group)
-
-
-# set the function to be used for severity calculation
 if(group=="host") severity_compositions <- host_severity_bgd_msna18
 if(group == "refugee") severity_compositions <- refugee_severity_bgd_msna18
 
@@ -48,9 +44,20 @@ assessment$data %<>% remove_non_consent
 assessment$severity <- severity_compositions(hh  = assessment$data,
                                              ind = assessment$loops$individuals)
 
+# impact & capacity score guessed
+assessment$severity$impact <- 4
 
 # msni not existent yet so randomising
-assessment$data$msni<-sample(1:4,nrow(assessment$data),T)
+assessment$data$msni<-with(assessment$severity,{
+  msni19::msni(education_lsg = edu, 
+               fsl_lsg = fsl, 
+               health_lsg = health,
+               protection_lsg = protection,
+               wash_lsg = wash,
+               shelter_lsg = nfi,
+               impact = impact,
+               capacity_gaps = capacity)
+})
 
 
 # everything below happening inside "assessment", so attaching for brevity:
