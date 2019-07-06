@@ -94,6 +94,16 @@ create_empty_combination_tables<-function(target.dir = "./output/"){
 }
 
 
+# sects<-c("edu","fsl","health","shelter","protection","capacity_gap","wash")
+# xls<- sapply(sects,
+#              read.xlsx,file = "./input_public/threshold_definitions/host_combinations_JIAF.xlsx")
+# 
+# 
+# dir.create("./input_public/threshold_definitions/host/")  
+# mapply(write.csv,xls,paste0("./input_public/threshold_definitions/host/",names(xls),".csv"))
+
+
+
 
 
 

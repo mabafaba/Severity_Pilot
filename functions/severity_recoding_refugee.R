@@ -73,12 +73,12 @@ refugee_severity_bgd_msna18<-function(hh,ind){
     mutate(
       si.protection.lighting=ifelse(lighting_availability=="yes", 2,0),
       si.protection.unsafe=ifelse(rowSums(.[unsafe_location_cols],na.rm=TRUE)>8,2,
-                               ifelse(rowSums(.[unsafe_location_cols],na.rm = TRUE)>4,1,0)),
-      si.nfi.shelt_damage= ifelse(shelter_damage.roof_destroyed=="yes"| shelter_damage.wall_destroyed=="yes",2,
-                                  ifelse((shelter_damage.roof_damaged=="yes"|shelter_damage.wall_damaged=="yes")& (shelter_damage.roof_destroyed=="no"|
-                                                                                                                     shelter_damage.wall_destroyed=="no"),1,0)),
-      si.nfi.essential=ifelse(rowSums(.[essential_nfis],na.rm=TRUE)>=3,2,
-                              ifelse(rowSums(.[essential_nfis],na.rm=TRUE)>=1,1,0)),
+                                  ifelse(rowSums(.[unsafe_location_cols],na.rm = TRUE)>4,1,0)),
+      si.shelter.shelt_damage= ifelse(shelter_damage.roof_destroyed=="yes"| shelter_damage.wall_destroyed=="yes",2,
+                                      ifelse((shelter_damage.roof_damaged=="yes"|shelter_damage.wall_damaged=="yes")& (shelter_damage.roof_destroyed=="no"|
+                                                                                                                         shelter_damage.wall_destroyed=="no"),1,0)),
+      si.shelter.essential=ifelse(rowSums(.[essential_nfis],na.rm=TRUE)>=3,2,
+                                  ifelse(rowSums(.[essential_nfis],na.rm=TRUE)>=1,1,0)),
       si.wash.defec=ifelse(defecate_where.opn_defecation==TRUE,2,
                            ifelse(defecate_where.communal_latrine==TRUE|
                                     defecate_where.plastic_bag==TRUE|
@@ -99,12 +99,12 @@ refugee_severity_bgd_msna18<-function(hh,ind){
   
   
   dl<-list(indiv_to_hh,hh_level_indicators)
-    
+  
   hh_indicators_combined<-Reduce(function(x, y) merge(x, y, all=TRUE), dl)
   hh_indicators_combined[,-1]<-lapply(hh_indicators_combined[,-1],as.numeric) %>% as_tibble
   
   
-
+  
   
   return(c(hh_indicators_combined) %>% as_tibble)
   

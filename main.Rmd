@@ -55,7 +55,7 @@ subpillar_scores <- subpillar_scores_bgd(list_of_combination_tables = combinatio
                                                        data = assessment$severity)
 
 
-msni_varied<-msni_variations(combination_tables, assessment$severity)
+
 
 assessment$severity <- c(assessment$severity,subpillar_scores) %>% as_tibble
 
@@ -69,7 +69,7 @@ assessment$data$msni<-with(assessment$severity,{
                health_lsg = health,
                protection_lsg = protection,
                wash_lsg = wash,
-               shelter_lsg = nfi,
+               shelter_lsg = shelter,
                impact = impact,
                capacity_gaps = capacity)
 })
@@ -136,10 +136,10 @@ severity_disaggregated %>%
 
 ```
 
-Scores between all camps do not differ significanty (p = `r round(result$hypothesis.test$result$p.value, 2)` )
 
 ### Distribution - How 'varied' are the scores?
 ```{r}
+
 design<-map_to_design(data,weighting_function =  weighting)
 standard_deviation <- sqrt(survey::svyvar(~msni,design)[1])
 ```
@@ -177,9 +177,17 @@ data.frame(`composite variable` = names(severity[,-1]),
 
 ### Sensitivity to Included Indicators
 
+
+```{r}
+# create variations and calculate msni
+msni_varied_indicators<-msni_variations(combination_tables, 
+                                        assessment$severity,
+                                        variation_function = vary_combination_tables_indicator_inclusion)
+
+```
 We show that overall, the index is not overly affected by removing (and by extension adding) individual indicators from the calculation, with the exception of three indicators whos importance warrants a stronger impact.
 
-We test how sensitive the index is with regards to which indicators are included; The overall score should ideally not be completely changed if specific indicators are added or removed; at the same time we should expect at least some variation based on which indicators are included. Prior to analysis, we choose a threshold of **a difference of 0.5 on the 1-4 scale that should ideally not be surpassed** if an individual indicator is removed (or added). We recalculate the score after removing each of the `r ncol(msni_varied)` sub-indicators , and test for each one whether the difference to the complete index exceeds 0.5
+We test how sensitive the index is with regards to which indicators are included; The overall score should ideally not be completely changed if specific indicators are added or removed; at the same time we should expect at least some variation based on which indicators are included. Prior to analysis, we choose a threshold of **a difference of 0.5 on the 1-4 scale that should ideally not be surpassed** if an individual indicator is removed (or added). We recalculate the score after removing each of the `r ncol(msni_varied_indicators)` sub-indicators , and test for each one whether the difference to the complete index exceeds 0.5
 
 ```{r}
 
@@ -190,12 +198,11 @@ We test how sensitive the index is with regards to which indicators are included
 msni_original<- tibble(msni = assessment$data$msni)
 
 
-
 sensitivity_test_table<- sensitivity_variation_test_result_table(msni_original = msni_original,
-                                        msni_varied = msni_varied,
+                                        msni_varied = msni_varied_indicators,
                                         threshold = 0.5,
-                                        strata_data_name = "camp_location",
-                                        strata_data_values = assessment$data$camp_location)
+                                        strata_data_name = default_disaggregation,
+                                        strata_data_values = data[[default_disaggregation]])
 
 sensitivity_test_table %>% kable(escape = FALSE) %>% kable_styling()
 
@@ -223,21 +230,97 @@ The index is robust towards all other indicators within the threshold of 0.5 poi
 # 
 #     Formula: 1 ~ W + X + Y | Z
 
+stratum_tibble<-tibble(stratum=assessment$data[[default_disaggregation]])
+colnames(stratum_tibble)<-default_disaggregation
 msni_varied_and_original<-c(msni_varied,
                             msni_original,
-                            tibble(camp_location=assessment$data$camp_location)) %>% as_tibble
+                            stratum_tibble) %>% as_tibble
 
-msni_varied_and_original<-gather(msni_varied_and_original,key = "key",value = 'value',-msni,-camp_location)
+msni_varied_and_original<-gather_(msni_varied_and_original,key = "key",value = 'value',gather_cols = names(msni_varied_and_original)[!(names(msni_varied_and_original) %in% c("msni",default_disaggregation))])
 msni_varied_and_original$weights<-weighting(msni_varied_and_original)
 msni_varied_and_original$value<-round(msni_varied_and_original$value,2)
-
+msni_varied_and_original<-msni_varied_and_original[!is.na(msni_varied_and_original),]
 ggplot(msni_varied_and_original)+
   geom_mosaic(aes(weight=weights,
                   x=product(msni,value),fill = (msni)))+scale_fill_brewer(name = "actual MSNI score")+theme_minimal()+theme(axis.text.y = element_blank())+xlab("MSNI score with one indicator removed")+ylab("")
 
 ```
 
+### Sensitivity to Thresholds
 
+The methodology relies heavily on normative judgement from sector as well is inter-sectoral experts.
+As such, it needs to be robust with regards to variations in those judgements.
+We add random noise of varying strength to the expert decision of how the indicators are combined, and compare the results to the original msni needs score.
+
+
+
+```{r}
+# create variations and calculate msni
+msni_varied_indicators<-msni_variations(combination_tables, 
+                                        assessment$severity,
+                                        variation_function = vary_combination_tables_thresholds)
+
+```
+
+
+[[interpretation]]
+
+
+```{r}
+
+# t-test: differences smaller 0.5 on average?
+
+# new dataframe: differences & stratum 
+
+msni_original<- tibble(msni = assessment$data$msni)
+
+
+sensitivity_test_table<- sensitivity_variation_test_result_table(msni_original = msni_original,
+                                        msni_varied = msni_varied_indicators,
+                                        threshold = 0.5,
+                                        strata_data_name = default_disaggregation,
+                                        strata_data_values = data[[default_disaggregation]])
+
+sensitivity_test_table %>% kable(escape = FALSE) %>% kable_styling()
+
+
+```
+
+
+
+
+```{r mosaic plot}
+
+
+
+# Example of how the formula is built
+# 
+#     weight = 1
+#     x = product(Y, X)
+#     fill = W
+#     conds = product(Z)
+# 
+# These aesthetics set up the formula for the distribution:
+# 
+#     Formula: 1 ~ W + X + Y | Z
+
+stratum_tibble<-tibble(stratum=assessment$data[[default_disaggregation]])
+colnames(stratum_tibble)<-default_disaggregation
+msni_varied_and_original<-c(msni_varied,
+                            msni_original,
+                            stratum_tibble) %>% as_tibble
+
+msni_varied_and_original<-gather_(msni_varied_and_original,key = "key",value = 'value',gather_cols = names(msni_varied_and_original)[!(names(msni_varied_and_original) %in% c("msni",default_disaggregation))])
+msni_varied_and_original$weights<-weighting(msni_varied_and_original)
+msni_varied_and_original$value<-round(msni_varied_and_original$value,2)
+msni_varied_and_original<-msni_varied_and_original[!is.na(msni_varied_and_original),]
+ggplot(msni_varied_and_original)+
+  geom_mosaic(aes(weight=weights,
+                  x=product(msni,value),fill = (msni)))+scale_fill_brewer(name = "actual MSNI score")+theme_minimal()+theme(axis.text.y = element_blank())+xlab("MSNI score with one indicator removed")+ylab("")
+
+```
+
+```
 ## Conclusion
 
 
