@@ -62,7 +62,7 @@ host_severity_bgd_msna18<-function(hh,ind){
       si.protection.missing_child=ifelse(sum(missing_child=="yes",na.rm=TRUE)>0,2,
                                          ifelse(is.na(sum(missing_child=="yes")),0,0)),
       si.health.birthplace=ifelse(sum(born1=="home",na.rm=TRUE)>0,2,1),
-      si.wellbeing.dia=ifelse(mean(no_dia,na.rm=TRUE)==1, 0,ifelse(sum(yes_dia_with_treat,na.rm=TRUE)==sum(yes_dia,na.rm=TRUE),1,2)),
+      si.health.dia=ifelse(mean(no_dia,na.rm=TRUE)==1, 0,ifelse(sum(yes_dia_with_treat,na.rm=TRUE)==sum(yes_dia,na.rm=TRUE),1,2)),
       si.capacity_gap.child_lab_bad=ifelse(sum.na.rm(work_sit_none)>0,2,0),
       si.health.disability_tr=ifelse(sum(disab_without_treat, na.rm=TRUE)>0,2,ifelse(sum(disab_with_treat,na.rm=TRUE)>0,1,0))
       
