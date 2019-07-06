@@ -54,9 +54,10 @@ host_severity_bgd_msna18<-function(hh,ind){
     
     group_by(instance_name) %>% 
     summarise(
-      health_mosq_net=ifelse(mean(mosquito_net=="no",na.rm=TRUE)==1,2,
-                             ifelse(mean(mosquito_net=="no", na.rm=TRUE)==0,0,1)),
-      si.health.mosq=ifelse(is.na(health_mosq_net),0,health_mosq_net),
+      health.mosq=ifelse(is.na(health_mosq_net),0,health_mosq_net),
+      si.health.mosq_net=ifelse(mean(health.mosq=="no",na.rm=TRUE)==1,2,
+                             ifelse(mean(health.mosq=="no", na.rm=TRUE)<1,0,NA)),
+
       si.health.indiv_illness=ifelse(sum(individual_illness=="yes",na.rm=TRUE)>0,1,
                                      ifelse(sum(individual_illness=="yes",na.rm=TRUE)>1,2,0)),
       si.protection.missing_child=ifelse(sum(missing_child=="yes",na.rm=TRUE)>0,2,
