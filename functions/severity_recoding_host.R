@@ -48,14 +48,14 @@ host_severity_bgd_msna18<-function(hh,ind){
       work_sit_none=ifelse(!is.na(individual_work_situation.none),FALSE,individual_work_situation.none),
       disab_treatment_rec= ifelse(is.na(disability_treatment), "not disabled", disability_treatment),
       disab_with_treat=ifelse(individual_disability=="yes" & disab_treatment_rec=="yes",1,0),
-      disab_without_treat= ifelse(individual_disability=="yes" & disab_treatment_rec=="no",1,0)#############
+      disab_without_treat= ifelse(individual_disability=="yes" & disab_treatment_rec=="no",1,0),
+      health.mosq=ifelse(is.na(mosquito_net),0,mosquito_net)
       
     ) %>% 
     
     group_by(instance_name) %>% 
     summarise(
-      health.mosq=ifelse(is.na(health_mosq_net),0,health_mosq_net),
-      si.health.mosq_net=ifelse(mean(health.mosq=="no",na.rm=TRUE)==1,2,
+      si.health.mosq = ifelse(mean(health.mosq=="no",na.rm=TRUE)==1,2,
                              ifelse(mean(health.mosq=="no", na.rm=TRUE)<1,0,NA)),
 
       si.health.indiv_illness=ifelse(sum(individual_illness=="yes",na.rm=TRUE)>0,1,
@@ -139,14 +139,19 @@ host_severity_bgd_msna18<-function(hh,ind){
                                girl_second_edu_barrier>0,1,0),
       wash_barrier_yn= ifelse(hh_water_problem=="yes",1,0),
       health_barrier_yn=ifelse(health_access=="yes",1,0),
-      barrier_edu_wash_health=edu_barrier_yn+wash_barrier_yn+health_barrier_yn
+      barrier_edu_wash_health=edu_barrier_yn+wash_barrier_yn+health_barrier_yn,
+      si.capacity_gap.rcsi= ifelse(hhy$rCSI <=4,0, ifelse(rCSI<=10,1,2))
       # si.ios.access_wash_education_health=ifelse(barrier_edu_wash_health>2,2,ifelse(barrier_edu_wash_health>0,1,ifelse(barrier_edu_wash_health==0,0,NA)))
     ) %>% select(instance_name,starts_with("si."))
-  
-  
-  hh_level %>% colnames()
+
   dl<-list(hh_level,more_individual_to_HH,Individual_to_HH)
   all_indis<-Reduce(function(x, y) merge(x, y, all=TRUE), dl)
+  all_indis[,-1]<-lapply(all_indis[,-1],as.numeric) %>% as_tibble
+  
+  
+  
+  
+  return(c(all_indis) %>% as_tibble)
   
   
 }

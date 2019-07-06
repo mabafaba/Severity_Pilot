@@ -23,3 +23,7 @@ faceted_density_plot<-function(data, x_variable_name, facet_by_variable_name){
     theme_minimal()+
     facet_grid(rows = vars(data[[facet_by_variable_name]]))
 }
+
+
+
+
