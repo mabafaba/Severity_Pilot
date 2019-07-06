@@ -167,6 +167,10 @@ data.frame(`composite variable` = names(severity[,-1]),
 
 ### Sensitivity to Included Indicators
 
+We show that overall, the index is not overly affected by removing (and by extension adding) individual indicators from the calculation, with the exception of three indicators whos importance warrants a stronger impact.
+
+We test how sensitive the index is with regards to which indicators are included; The overall score should ideally not be completely changed if specific indicators are added or removed; at the same time we should expect at least some variation based on which indicators are included. Prior to analysis, we choose a threshold of **a difference of 0.5 on the 1-4 scale that should ideally not be surpassed** if an individual indicator is removed (or added). We recalculate the score after removing each of the `r ncol(msni_varied)` sub-indicators , and test for each one whether the difference to the complete index exceeds 0.5
+
 ```{r}
 
 # t-test: differences smaller 0.5 on average?
@@ -179,12 +183,16 @@ msni_diffs<- lapply(msni_diffs,unlist) %>% as.data.frame
 msni_diffs$camp_location<-assessment$data$camp_location
 
 
+
+
+
+
 # make survey design object
 design<-map_to_design(msni_diffs,
                       weighting_function = weighting)
 
 # define test formulas:
-test_formulas<-sapply(paste0(names(msni_diffs),"~",0),formula)
+test_formulas<-sapply(paste0(names(msni_diffs)[names(msni_diffs)!="camp_location"],"~",0),formula)
 
 # run tests:
 tests<-lapply(test_formulas,svyttest,design = design)
@@ -192,23 +200,25 @@ tests<-lapply(test_formulas,svyttest,design = design)
 # which variations have average <-0.5?
 tests <- data.frame(sapply(tests,function(x){x$estimate}),sapply(tests,function(x){x$p.value}))
 names(tests)<- c("distance from 0.5 difference","p")
+tests$`Removed Indicator` <-names(msni_varied) 
 tests$difference_smaller_05<-tests$`distance from 0.5 difference` < 0
 tests$p_bonferroni_corrected<-tests$p*nrow(tests)
 tests$dif_significantly_smaller_05<-tests$difference_smaller_05 & tests$p_bonferroni_corrected<0.01
-tests$`average absolute difference`<-tests$`distance from 0.5 difference`+0.5
+tests$`average absolute difference from original msni index`<-tests$`distance from 0.5 difference`+0.5
 tests$`p value (Bonferroni corrected)`<-round(tests$p_bonferroni_corrected,5)
-tests$`Difference signifcantly smaller 0.5`<-tests$dif_significantly_smaller_05 %>% as.character %>% recode("TRUE" = "Yes","FALSE" = "No")
-tests %<>% arrange(dif_significantly_smaller_05,desc(`average absolute difference`))
-tests %>% select(`average absolute difference`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5`)
-tests$`Difference signifcantly smaller 0.5`<- tests$`Difference signifcantly smaller 0.5` %>% cell_spec(background = ifelse(tests$`Difference signifcantly smaller 0.5`=="Yes","green","red"),color = "white")
-tests %>% select(`average absolute difference`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5`) %>% kable(escape = FALSE) %>% kable_styling()
-
-
-
-
+tests$`Difference signifcantly smaller 0.5 (at p<=0.01)`<-tests$dif_significantly_smaller_05 %>% as.character %>% recode("TRUE" = "Yes","FALSE" = "No")
+tests %<>% arrange(dif_significantly_smaller_05,desc(`average absolute difference from original msni index`))
+tests$`Difference signifcantly smaller 0.5 (at p<=0.01)`<- tests$`Difference signifcantly smaller 0.5 (at p<=0.01)` %>% cell_spec(background = ifelse(tests$`Difference signifcantly smaller 0.5 (at p<=0.01)`=="Yes","green","red"),color = "white")
+tests %>% select(`Removed Indicator`,`average absolute difference from original msni index`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5 (at p<=0.01)`) %>% kable(escape = FALSE) %>% kable_styling()
 
 
 ```
+
+The overall index changes more than 0.5 points when removing the indicators for _drinking water source_ (WASH), _child marriage to reduce economic burden_ (Capacity Gaps) and _water access quantity_ (WASH). In the composite index, these indicators were consiously selected to have strong impact. As such, it is expected that their removal would have a strong impact on the results.
+
+All other indicators 
+
+
 
 ```{r mosaic plot}
 
@@ -238,6 +248,8 @@ ggplot(msni_varied_and_original)+
                   x=product(msni,value),fill = (msni)))+scale_fill_brewer(name = "actual MSNI score")+theme_minimal()+theme(axis.text.y = element_blank())+xlab("MSNI score with one indicator removed")+ylab("")
 
 ```
+
+
 ## Conclusion
 
 

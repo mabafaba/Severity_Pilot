@@ -22,7 +22,6 @@ vary_combination_tables <- function(combination_tables){
   combinations <- combinations %>% dplyr::filter(!(variable_name %in% c("X","Aggregate","JIAF.CLASSIFICATION")))
   # don't vary columns from sectors with only one column
   combinations<-combinations[combinations$pillar %in% (combinations$pillar %>% table %>% as.data.frame %>% .[.$Freq != 1,"."]),]
-  combination_tables %>% lapply(names)
   
   
   vary_combination_table_once<-function(pillar,variable_name,combination_tables){
@@ -36,13 +35,9 @@ vary_combination_tables <- function(combination_tables){
   
   
   varied <- combinations %>% purrr::pmap(.f = vary_combination_table_once, combination_tables)
-
+  names(varied)<-combinations$variable_name %>% gsub("si\\.","",.) %>% gsub("\\."," ",.)
+  varied
 }
-
-
-
-
-
 
 
 

@@ -58,11 +58,11 @@ create_empty_combination_tables<-function(target.dir = "./output/"){
     
     
     
-    # refugee_assessment$severity <- refugee_severity_bgd_msna18(hh  = refugee_assessment$data,
-    #                                                            ind = refugee_assessment$loops$individuals)
-    # 
+    refugee_assessment$severity <- refugee_severity_bgd_msna18(hh  = refugee_assessment$data,
+                                                               ind = refugee_assessment$loops$individuals)
+
     dir.create(paste0(target.dir, "/", "host"),recursive = T)
-    dir.create(paste0(target.dir, "/", "refugee"),recursive = T)
+    dir.create(paste0(target.dir, "/", "refugees"),recursive = T)
     unlink(list.files(target.dir),recursive = T)
     combinations_by_sector_host<-all_combinations(host_assessment$severity)
     combinations_by_sector_refugees<-all_combinations(refugee_assessment$severity)
@@ -89,8 +89,6 @@ create_empty_combination_tables<-function(target.dir = "./output/"){
                 target_filenames,
                 write.csv,
                 row.names = FALSE)
-    
-    
     
 
 }
