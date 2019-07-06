@@ -33,8 +33,8 @@ host_severity_bgd_msna18<-function(hh,ind){
       
       #IF ANY ADULT WORKED THEY GET S0, IF  ONLY CHILD WORKED S1, IF NO ONE WORKED S2 
       si.fsl.individual_worked= ifelse(num_working_adult>0,0,
-                                       ifelse(num_working_child>0&num_working_child==num_working_adult,1,
-                                              ifelse(num_working_anyone<1,0,NA)))) %>% 
+                                       ifelse(num_working_child==num_working_anyone,1,
+                                              ifelse(num_working_anyone<1,2,NA)))) %>% 
     select(instance_name, starts_with("si."))
   
   
@@ -62,7 +62,7 @@ host_severity_bgd_msna18<-function(hh,ind){
       si.protection.missing_child=ifelse(sum(missing_child=="yes",na.rm=TRUE)>0,2,
                                          ifelse(is.na(sum(missing_child=="yes")),0,0)),
       si.health.birthplace=ifelse(sum(born1=="home",na.rm=TRUE)>0,2,1),
-      si.wellbeing.dia=ifelse(mean(no_dia,na.rm=TRUE)==1, 0,ifelse(sum(yes_dia_with_treat,na.rm=TRUE)==sum(yes_dia,na.rm=TRUE),1,2)),
+      si.health.dia=ifelse(mean(no_dia,na.rm=TRUE)==1, 0,ifelse(sum(yes_dia_with_treat,na.rm=TRUE)==sum(yes_dia,na.rm=TRUE),1,2)),
       si.capacity_gap.child_lab_bad=ifelse(sum.na.rm(work_sit_none)>0,2,0),
       si.health.disability_tr=ifelse(sum(disab_without_treat, na.rm=TRUE)>0,2,ifelse(sum(disab_with_treat,na.rm=TRUE)>0,1,0))
       
@@ -108,10 +108,10 @@ host_severity_bgd_msna18<-function(hh,ind){
                                       ifelse(hh_safe=="no",2,NA)),
       nfi_expenditure= spend_clothing + spend_fuel+ spend_hh_items+ spend_hygiene,
       nfi_to_total= nfi_expenditure/TotalExpenditure,
-      si.shelt.exp=ifelse(nfi_to_total>=0.25,2,ifelse(nfi_to_total>=0.15,1,0)),
+      si.shelt.nfi_exp=ifelse(nfi_to_total>=0.25,2,ifelse(nfi_to_total>=0.15,1,0)),
       shelter_expenditure= spend_fix_shelter + spend_rent,
       shelter_to_total=shelter_expenditure/TotalExpenditure,
-      si.shelt.exp=ifelse(shelter_to_total>=0.2, 2, ifelse(shelter_to_total<0.2,1,0)),
+      si.shelt.exp=ifelse(shelter_to_total>=0.2, 2, ifelse(shelter_to_total<0.2,0,0)),
       si.shelt.topo=ifelse(ShelterType=="Jhuprie",2,
                            ifelse(ShelterType=="Kutcha",1,
                                   ifelse(ShelterType %in% c("Pucca", "SemiPucca"),0,NA))),
