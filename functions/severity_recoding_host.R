@@ -33,8 +33,8 @@ host_severity_bgd_msna18<-function(hh,ind){
       
       #IF ANY ADULT WORKED THEY GET S0, IF  ONLY CHILD WORKED S1, IF NO ONE WORKED S2 
       si.fsl.individual_worked= ifelse(num_working_adult>0,0,
-                                       ifelse(num_working_child>0&num_working_child==num_working_adult,1,
-                                              ifelse(num_working_anyone<1,0,NA)))) %>% 
+                                       ifelse(num_working_child==num_working_anyone,1,
+                                              ifelse(num_working_anyone<1,2,NA)))) %>% 
     select(instance_name, starts_with("si."))
   
   
