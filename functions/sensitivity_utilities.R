@@ -49,3 +49,45 @@ group_by_all<-function(data,except = c()){
   
 }
 
+
+
+
+
+
+
+
+
+#' take original msni score + table of variations of msni score; calculate hypothesis tests if difference larger than threshold; return nice table
+sensitivity_variation_test_result_table<-function(msni_original,msni_varied,threshold, strata_data_name, strata_data_values){
+  
+  msni_diffs <- msni_varied %>% purrr::map(function(x){abs(x-msni_original)-threshold}) %>% as_tibble
+  names(msni_diffs)<-paste0("diff",1:ncol(msni_diffs))
+  msni_diffs<- lapply(msni_diffs,unlist) %>% as.data.frame
+  msni_diffs[[strata_data_name]]<-strata_data_values
+  
+  # make survey design object
+  design<-map_to_design(msni_diffs,
+                        weighting_function = weighting)
+  
+  # define test formulas:
+  test_formulas<-sapply(paste0(names(msni_diffs)[names(msni_diffs)!="camp_location"],"~",0),formula)
+  
+  # run tests:
+  tests<-lapply(test_formulas,svyttest,design = design)
+  
+  # which variations have average <= threshold?
+  tests <- data.frame(sapply(tests,function(x){x$estimate}),sapply(tests,function(x){x$p.value}))
+  names(tests)<- c(paste("distance from",threshold,"difference"),"p")
+  tests$`Indicator` <-names(msni_varied) 
+  tests$difference_smaller_05<-tests$`distance from 0.5 difference` < 0
+  tests$p_bonferroni_corrected<-tests$p*nrow(tests)
+  tests$dif_significantly_smaller_05<-tests$difference_smaller_05 & tests$p_bonferroni_corrected<0.01
+  tests$`average absolute difference from original msni index`<-tests$`distance from 0.5 difference`+threshold
+  tests$`p value (Bonferroni corrected)`<-round(tests$p_bonferroni_corrected,5)
+  tests$`Difference signifcantly smaller than threshold (at p<=0.01)`<-tests$dif_significantly_smaller_05 %>% as.character %>% recode("TRUE" = "Yes","FALSE" = "No")
+  tests %<>% arrange(dif_significantly_smaller_05,desc(`average absolute difference from original msni index`))
+  tests$`Difference signifcantly smaller than threshold (at p<=0.01)`<- tests$`Difference signifcantly smaller than threshold (at p<=0.01)` %>% cell_spec(background = ifelse(tests$`Difference signifcantly smaller than threshold (at p<=0.01)`=="Yes","green","red"),color = "white")
+  tests %>% select(`Indicator`,`average absolute difference from original msni index`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller than threshold (at p<=0.01)`)
+  
+}
+

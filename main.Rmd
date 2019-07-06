@@ -176,47 +176,56 @@ We test how sensitive the index is with regards to which indicators are included
 # t-test: differences smaller 0.5 on average?
 
 # new dataframe: differences & stratum 
+
 msni_original<- tibble(msni = assessment$data$msni)
-msni_diffs <- msni_varied %>% purrr::map(function(x){abs(x-msni_original)-0.5}) %>% as_tibble
-names(msni_diffs)<-paste0("diff",1:ncol(msni_diffs))
-msni_diffs<- lapply(msni_diffs,unlist) %>% as.data.frame
-msni_diffs$camp_location<-assessment$data$camp_location
 
+sensitivity_variation_test_result_table<-function(msni_original,msni_varied,threshold, strata_data_name, strata_data_values){
+  
+    msni_diffs <- msni_varied %>% purrr::map(function(x){abs(x-msni_original)-threshold}) %>% as_tibble
+    names(msni_diffs)<-paste0("diff",1:ncol(msni_diffs))
+    msni_diffs<- lapply(msni_diffs,unlist) %>% as.data.frame
+    msni_diffs[[strata_data_name]]<-strata_data_values
 
+    # make survey design object
+    design<-map_to_design(msni_diffs,
+                          weighting_function = weighting)
+    
+    # define test formulas:
+    test_formulas<-sapply(paste0(names(msni_diffs)[names(msni_diffs)!="camp_location"],"~",0),formula)
+    
+    # run tests:
+    tests<-lapply(test_formulas,svyttest,design = design)
+    
+    # which variations have average <= threshold?
+    tests <- data.frame(sapply(tests,function(x){x$estimate}),sapply(tests,function(x){x$p.value}))
+    names(tests)<- c(paste("distance from",threshold,"difference"),"p")
+    tests$`Indicator` <-names(msni_varied) 
+    tests$difference_smaller_05<-tests$`distance from 0.5 difference` < 0
+    tests$p_bonferroni_corrected<-tests$p*nrow(tests)
+    tests$dif_significantly_smaller_05<-tests$difference_smaller_05 & tests$p_bonferroni_corrected<0.01
+    tests$`average absolute difference from original msni index`<-tests$`distance from 0.5 difference`+threshold
+    tests$`p value (Bonferroni corrected)`<-round(tests$p_bonferroni_corrected,5)
+    tests$`Difference signifcantly smaller than threshold (at p<=0.01)`<-tests$dif_significantly_smaller_05 %>% as.character %>% recode("TRUE" = "Yes","FALSE" = "No")
+    tests %<>% arrange(dif_significantly_smaller_05,desc(`average absolute difference from original msni index`))
+    tests$`Difference signifcantly smaller than threshold (at p<=0.01)`<- tests$`Difference signifcantly smaller than threshold (at p<=0.01)` %>% cell_spec(background = ifelse(tests$`Difference signifcantly smaller than threshold (at p<=0.01)`=="Yes","green","red"),color = "white")
+    tests %>% select(`Indicator`,`average absolute difference from original msni index`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller than threshold (at p<=0.01)`)
 
+}
 
+sensitivity_test_table<- sensitivity_variation_test_result_table(msni_original = msni_original,
+                                        msni_varied = msni_varied,
+                                        threshold = 0.5,
+                                        strata_data_name = "camp_location",
+                                        strata_data_values = assessment$data$camp_location)
 
-
-# make survey design object
-design<-map_to_design(msni_diffs,
-                      weighting_function = weighting)
-
-# define test formulas:
-test_formulas<-sapply(paste0(names(msni_diffs)[names(msni_diffs)!="camp_location"],"~",0),formula)
-
-# run tests:
-tests<-lapply(test_formulas,svyttest,design = design)
-
-# which variations have average <-0.5?
-tests <- data.frame(sapply(tests,function(x){x$estimate}),sapply(tests,function(x){x$p.value}))
-names(tests)<- c("distance from 0.5 difference","p")
-tests$`Removed Indicator` <-names(msni_varied) 
-tests$difference_smaller_05<-tests$`distance from 0.5 difference` < 0
-tests$p_bonferroni_corrected<-tests$p*nrow(tests)
-tests$dif_significantly_smaller_05<-tests$difference_smaller_05 & tests$p_bonferroni_corrected<0.01
-tests$`average absolute difference from original msni index`<-tests$`distance from 0.5 difference`+0.5
-tests$`p value (Bonferroni corrected)`<-round(tests$p_bonferroni_corrected,5)
-tests$`Difference signifcantly smaller 0.5 (at p<=0.01)`<-tests$dif_significantly_smaller_05 %>% as.character %>% recode("TRUE" = "Yes","FALSE" = "No")
-tests %<>% arrange(dif_significantly_smaller_05,desc(`average absolute difference from original msni index`))
-tests$`Difference signifcantly smaller 0.5 (at p<=0.01)`<- tests$`Difference signifcantly smaller 0.5 (at p<=0.01)` %>% cell_spec(background = ifelse(tests$`Difference signifcantly smaller 0.5 (at p<=0.01)`=="Yes","green","red"),color = "white")
-tests %>% select(`Removed Indicator`,`average absolute difference from original msni index`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5 (at p<=0.01)`) %>% kable(escape = FALSE) %>% kable_styling()
+sensitivity_test_table %>% kable(escape = FALSE) %>% kable_styling()
 
 
 ```
 
 The overall index changes more than 0.5 points when removing the indicators for _drinking water source_ (WASH), _child marriage to reduce economic burden_ (Capacity Gaps) and _water access quantity_ (WASH). In the composite index, these indicators were consiously selected to have strong impact. As such, it is expected that their removal would have a strong impact on the results.
 
-All other indicators 
+The index is robust towards all other indicators within the threshold of 0.5 points on the scale.
 
 
 

@@ -1178,45 +1178,54 @@ impact
 <pre class="r"><code># t-test: differences smaller 0.5 on average?
 
 # new dataframe: differences &amp; stratum 
+
 msni_original&lt;- tibble(msni = assessment$data$msni)
-msni_diffs &lt;- msni_varied %&gt;% purrr::map(function(x){abs(x-msni_original)-0.5}) %&gt;% as_tibble
-names(msni_diffs)&lt;-paste0(&quot;diff&quot;,1:ncol(msni_diffs))
-msni_diffs&lt;- lapply(msni_diffs,unlist) %&gt;% as.data.frame
-msni_diffs$camp_location&lt;-assessment$data$camp_location
 
+sensitivity_variation_test_result_table&lt;-function(msni_original,msni_varied,threshold, strata_data_name, strata_data_values){
+  
+    msni_diffs &lt;- msni_varied %&gt;% purrr::map(function(x){abs(x-msni_original)-threshold}) %&gt;% as_tibble
+    names(msni_diffs)&lt;-paste0(&quot;diff&quot;,1:ncol(msni_diffs))
+    msni_diffs&lt;- lapply(msni_diffs,unlist) %&gt;% as.data.frame
+    msni_diffs[[strata_data_name]]&lt;-strata_data_values
 
+    # make survey design object
+    design&lt;-map_to_design(msni_diffs,
+                          weighting_function = weighting)
+    
+    # define test formulas:
+    test_formulas&lt;-sapply(paste0(names(msni_diffs)[names(msni_diffs)!=&quot;camp_location&quot;],&quot;~&quot;,0),formula)
+    
+    # run tests:
+    tests&lt;-lapply(test_formulas,svyttest,design = design)
+    
+    # which variations have average &lt;= threshold?
+    tests &lt;- data.frame(sapply(tests,function(x){x$estimate}),sapply(tests,function(x){x$p.value}))
+    names(tests)&lt;- c(paste(&quot;distance from&quot;,threshold,&quot;difference&quot;),&quot;p&quot;)
+    tests$`Indicator` &lt;-names(msni_varied) 
+    tests$difference_smaller_05&lt;-tests$`distance from 0.5 difference` &lt; 0
+    tests$p_bonferroni_corrected&lt;-tests$p*nrow(tests)
+    tests$dif_significantly_smaller_05&lt;-tests$difference_smaller_05 &amp; tests$p_bonferroni_corrected&lt;0.01
+    tests$`average absolute difference from original msni index`&lt;-tests$`distance from 0.5 difference`+threshold
+    tests$`p value (Bonferroni corrected)`&lt;-round(tests$p_bonferroni_corrected,5)
+    tests$`Difference signifcantly smaller than threshold (at p&lt;=0.01)`&lt;-tests$dif_significantly_smaller_05 %&gt;% as.character %&gt;% recode(&quot;TRUE&quot; = &quot;Yes&quot;,&quot;FALSE&quot; = &quot;No&quot;)
+    tests %&lt;&gt;% arrange(dif_significantly_smaller_05,desc(`average absolute difference from original msni index`))
+    tests$`Difference signifcantly smaller than threshold (at p&lt;=0.01)`&lt;- tests$`Difference signifcantly smaller than threshold (at p&lt;=0.01)` %&gt;% cell_spec(background = ifelse(tests$`Difference signifcantly smaller than threshold (at p&lt;=0.01)`==&quot;Yes&quot;,&quot;green&quot;,&quot;red&quot;),color = &quot;white&quot;)
+    tests %&gt;% select(`Indicator`,`average absolute difference from original msni index`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller than threshold (at p&lt;=0.01)`)
 
+}
 
+sensitivity_test_table&lt;- sensitivity_variation_test_result_table(msni_original = msni_original,
+                                        msni_varied = msni_varied,
+                                        threshold = 0.5,
+                                        strata_data_name = &quot;camp_location&quot;,
+                                        strata_data_values = assessment$data$camp_location)
 
-
-# make survey design object
-design&lt;-map_to_design(msni_diffs,
-                      weighting_function = weighting)
-
-# define test formulas:
-test_formulas&lt;-sapply(paste0(names(msni_diffs)[names(msni_diffs)!=&quot;camp_location&quot;],&quot;~&quot;,0),formula)
-
-# run tests:
-tests&lt;-lapply(test_formulas,svyttest,design = design)
-
-# which variations have average &lt;-0.5?
-tests &lt;- data.frame(sapply(tests,function(x){x$estimate}),sapply(tests,function(x){x$p.value}))
-names(tests)&lt;- c(&quot;distance from 0.5 difference&quot;,&quot;p&quot;)
-tests$`Removed Indicator` &lt;-names(msni_varied) 
-tests$difference_smaller_05&lt;-tests$`distance from 0.5 difference` &lt; 0
-tests$p_bonferroni_corrected&lt;-tests$p*nrow(tests)
-tests$dif_significantly_smaller_05&lt;-tests$difference_smaller_05 &amp; tests$p_bonferroni_corrected&lt;0.01
-tests$`average absolute difference from original msni index`&lt;-tests$`distance from 0.5 difference`+0.5
-tests$`p value (Bonferroni corrected)`&lt;-round(tests$p_bonferroni_corrected,5)
-tests$`Difference signifcantly smaller 0.5 (at p&lt;=0.01)`&lt;-tests$dif_significantly_smaller_05 %&gt;% as.character %&gt;% recode(&quot;TRUE&quot; = &quot;Yes&quot;,&quot;FALSE&quot; = &quot;No&quot;)
-tests %&lt;&gt;% arrange(dif_significantly_smaller_05,desc(`average absolute difference from original msni index`))
-tests$`Difference signifcantly smaller 0.5 (at p&lt;=0.01)`&lt;- tests$`Difference signifcantly smaller 0.5 (at p&lt;=0.01)` %&gt;% cell_spec(background = ifelse(tests$`Difference signifcantly smaller 0.5 (at p&lt;=0.01)`==&quot;Yes&quot;,&quot;green&quot;,&quot;red&quot;),color = &quot;white&quot;)
-tests %&gt;% select(`Removed Indicator`,`average absolute difference from original msni index`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5 (at p&lt;=0.01)`) %&gt;% kable(escape = FALSE) %&gt;% kable_styling()</code></pre>
+sensitivity_test_table %&gt;% kable(escape = FALSE) %&gt;% kable_styling()</code></pre>
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
 <th style="text-align:left;">
-Removed Indicator
+Indicator
 </th>
 <th style="text-align:right;">
 average absolute difference from original msni index
@@ -1225,7 +1234,7 @@ average absolute difference from original msni index
 p value (Bonferroni corrected)
 </th>
 <th style="text-align:left;">
-Difference signifcantly smaller 0.5 (at p&lt;=0.01)
+Difference signifcantly smaller than threshold (at p&lt;=0.01)
 </th>
 </tr>
 </thead>
@@ -1470,8 +1479,8 @@ wash garbage_disp
 </tr>
 </tbody>
 </table>
-<p>The overall index changes more than 0.5 points when removing the indicators for <em>drinking water source</em> (WASH), <em>child marriage to reduce economic burden</em> (Capacity Gaps) and <em>water access quantity</em>. In the composite index, these indicators were consiously selected to have strong impact. As such, it is expected that their removal would have a strong impact on the results.</p>
-<p>All other indicators</p>
+<p>The overall index changes more than 0.5 points when removing the indicators for <em>drinking water source</em> (WASH), <em>child marriage to reduce economic burden</em> (Capacity Gaps) and <em>water access quantity</em> (WASH). In the composite index, these indicators were consiously selected to have strong impact. As such, it is expected that their removal would have a strong impact on the results.</p>
+<p>The index is robust towards all other indicators within the threshold of 0.5 points on the scale.</p>
 <pre class="r"><code># Example of how the formula is built
 # 
 #     weight = 1

@@ -24,8 +24,8 @@ msni_variations<-function(combination_tables,severity){
                  wash_lsg = subpillars$wash,
                  capacity_gaps = subpillars$capacity,impact = subpillars$impact)
   }) %>% do.call(cbind,.) %>% as_tibble 
-
-  }
+  
+}
 
 
 
