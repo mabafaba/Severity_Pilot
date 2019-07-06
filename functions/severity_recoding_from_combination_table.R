@@ -1,26 +1,33 @@
+read_all_csvs<-function(folder){
+  filenames<-list.files(folder) %>% paste0(folder,"/",.)
+  condition_tables<-lapply(filenames,
+                           read.csv,
+                           stringsAsFactors = FALSE)
+  pure_names<-strsplit(filenames,"/") %>% lapply(last) %>% unlist %>% gsub("\\.csv","",.)
+  names(condition_tables)<-pure_names
+  condition_tables
+  
+}
+
+
 #' calcualte subpillars from decision tree table
 #' 
 #' 
 #' @param file the name of the xls file with the choice combinations
-#' @param subpillars character vector of subpillars; should match sheet names in `file`
 #' @param data the dataset/variables for which to compute the subpillars
 #' 
-subpillar_scores_from_csvs_bgd<-function(path_to_csvs,subpillars,data){
+subpillar_scores_bgd<-function(list_of_combination_tables,data){
 
-filenames<-list.files(path_to_csvs) %>% paste0(path_to_csvs,"/",.)
 
-condition_tables<-lapply(filenames,
-                         read.csv,
-                         stringsAsFactors = FALSE)
 
-pillar_names<-strsplit(filenames,"/") %>% lapply(last) %>% unlist %>% gsub("\\.csv","",.)
 
-subpillar_scores <- purrr::map(condition_tables,
+
+subpillar_scores <- purrr::map(list_of_combination_tables,
            solve_combination_table_bgd,
            values_data = data) 
 
 subpillar_scores <- do.call(data.frame,c(subpillar_scores,stringsAsFactors = FALSE))
-names(subpillar_scores)<-pillar_names
+names(subpillar_scores)<-names(list_of_combination_tables)
 subpillar_scores %<>% as_tibble
 
 subpillar_scores
@@ -40,7 +47,7 @@ solve_combination_table_bgd<-function(combination_table,values_data){
   
   values<-combination_table %>% select(starts_with("si."))
   target<-combination_table %>% select(starts_with("JIAF."))
-  solve_combination_table(values, target, values_data) %>% as.character %>% as.numeric
+  solved<-solve_combination_table(values, target, values_data) %>% unlist %>%  as.character %>% as.numeric %>% tibble(solution = .)
   
   
 }

@@ -217,7 +217,9 @@ $(document).ready(function () {
 </ul></li>
 <li><a href="#results">Results</a></li>
 <li><a href="#methodology">Methodology</a></li>
-<li><a href="#sensitivity-and-robustness">Sensitivity and Robustness</a></li>
+<li><a href="#sensitivity-and-robustness">Sensitivity and Robustness</a><ul>
+<li><a href="#sensitivity-to-included-indicators">Sensitivity to Included Indicators</a></li>
+</ul></li>
 <li><a href="#conclusion">Conclusion</a></li>
 </ul></li>
 </ul>
@@ -883,83 +885,6 @@ percent NA
 <tbody>
 <tr>
 <td style="text-align:left;">
-nfi
-</td>
-<td style="text-align:left;">
-nfi
-</td>
-<td style="text-align:left;">
-0 %
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-fsl
-</td>
-<td style="text-align:left;">
-fsl
-</td>
-<td style="text-align:left;">
-0 %
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-health
-</td>
-<td style="text-align:left;">
-health
-</td>
-<td style="text-align:left;">
-0 %
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-protection
-</td>
-<td style="text-align:left;">
-protection
-</td>
-<td style="text-align:left;">
-0 %
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-wash
-</td>
-<td style="text-align:left;">
-wash
-</td>
-<td style="text-align:left;">
-0 %
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-capacity
-</td>
-<td style="text-align:left;">
-capacity
-</td>
-<td style="text-align:left;">
-0 %
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-instance_name
-</td>
-<td style="text-align:left;">
-instance_name
-</td>
-<td style="text-align:left;">
-0 %
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
 si.edu.learning_space_attendance
 </td>
 <td style="text-align:left;">
@@ -1151,6 +1076,83 @@ si.health.preg
 </td>
 <td style="text-align:left;">
 si.health.preg
+</td>
+<td style="text-align:left;">
+0 %
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+capacity
+</td>
+<td style="text-align:left;">
+capacity
+</td>
+<td style="text-align:left;">
+0 %
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+edu
+</td>
+<td style="text-align:left;">
+edu
+</td>
+<td style="text-align:left;">
+0 %
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+fsl
+</td>
+<td style="text-align:left;">
+fsl
+</td>
+<td style="text-align:left;">
+0 %
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+health
+</td>
+<td style="text-align:left;">
+health
+</td>
+<td style="text-align:left;">
+0 %
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+nfi
+</td>
+<td style="text-align:left;">
+nfi
+</td>
+<td style="text-align:left;">
+0 %
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+protection
+</td>
+<td style="text-align:left;">
+protection
+</td>
+<td style="text-align:left;">
+0 %
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+wash
+</td>
+<td style="text-align:left;">
+wash
 </td>
 <td style="text-align:left;">
 0 %
@@ -1169,6 +1171,295 @@ impact
 </tr>
 </tbody>
 </table>
+<div id="sensitivity-to-included-indicators" class="section level3">
+<h3>Sensitivity to Included Indicators</h3>
+<pre class="r"><code># t-test: differences smaller 0.5 on average?
+
+# new dataframe: differences &amp; stratum 
+msni_original&lt;- tibble(msni = assessment$data$msni)
+msni_diffs &lt;- msni_varied %&gt;% purrr::map(function(x){abs(x-msni_original)-0.5}) %&gt;% as_tibble
+names(msni_diffs)&lt;-paste0(&quot;diff&quot;,1:ncol(msni_diffs))
+msni_diffs&lt;- lapply(msni_diffs,unlist) %&gt;% as.data.frame
+msni_diffs$camp_location&lt;-assessment$data$camp_location
+
+
+# make survey design object
+design&lt;-map_to_design(msni_diffs,
+                      weighting_function = weighting)
+
+# define test formulas:
+test_formulas&lt;-sapply(paste0(names(msni_diffs),&quot;~&quot;,0),formula)
+
+# run tests:
+tests&lt;-lapply(test_formulas,svyttest,design = design)
+
+# which variations have average &lt;-0.5?
+tests &lt;- data.frame(sapply(tests,function(x){x$estimate}),sapply(tests,function(x){x$p.value}))
+names(tests)&lt;- c(&quot;distance from 0.5 difference&quot;,&quot;p&quot;)
+tests$difference_smaller_05&lt;-tests$`distance from 0.5 difference` &lt; 0
+tests$p_bonferroni_corrected&lt;-tests$p*nrow(tests)
+tests$dif_significantly_smaller_05&lt;-tests$difference_smaller_05 &amp; tests$p_bonferroni_corrected&lt;0.01
+tests$`average absolute difference`&lt;-tests$`distance from 0.5 difference`+0.5
+tests$`p value (Bonferroni corrected)`&lt;-round(tests$p_bonferroni_corrected,5)
+tests$`Difference signifcantly smaller 0.5`&lt;-tests$dif_significantly_smaller_05 %&gt;% as.character %&gt;% recode(&quot;TRUE&quot; = &quot;Yes&quot;,&quot;FALSE&quot; = &quot;No&quot;)
+tests %&lt;&gt;% arrange(dif_significantly_smaller_05,desc(`average absolute difference`))
+tests %&gt;% select(`average absolute difference`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5`)</code></pre>
+<pre><code>##    average absolute difference p value (Bonferroni corrected)
+## 1                   0.77037608                        0.00000
+## 2                   0.76468125                        0.00000
+## 3                   0.53757440                        0.00000
+## 4                   0.51449023                        1.81559
+## 5                   0.34585453                        0.00000
+## 6                   0.23115958                        0.00000
+## 7                   0.18624451                        0.00000
+## 8                   0.17099646                        0.00000
+## 9                   0.13652083                        0.00000
+## 10                  0.12548018                        0.00000
+## 11                  0.08429619                        0.00000
+## 12                  0.07542518                        0.00000
+## 13                  0.04980058                        0.00000
+## 14                  0.03068875                        0.00000
+## 15                  0.03021059                        0.00000
+## 16                  0.00000000                        0.00000
+## 17                  0.00000000                        0.00000
+## 18                  0.00000000                        0.00000
+##    Difference signifcantly smaller 0.5
+## 1                                   No
+## 2                                   No
+## 3                                   No
+## 4                                   No
+## 5                                  Yes
+## 6                                  Yes
+## 7                                  Yes
+## 8                                  Yes
+## 9                                  Yes
+## 10                                 Yes
+## 11                                 Yes
+## 12                                 Yes
+## 13                                 Yes
+## 14                                 Yes
+## 15                                 Yes
+## 16                                 Yes
+## 17                                 Yes
+## 18                                 Yes</code></pre>
+<pre class="r"><code>tests$`Difference signifcantly smaller 0.5`&lt;- tests$`Difference signifcantly smaller 0.5` %&gt;% cell_spec(background = ifelse(tests$`Difference signifcantly smaller 0.5`==&quot;Yes&quot;,&quot;green&quot;,&quot;red&quot;),color = &quot;white&quot;)
+tests %&gt;% select(`average absolute difference`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5`) %&gt;% kable(escape = FALSE) %&gt;% kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;">
+average absolute difference
+</th>
+<th style="text-align:right;">
+p value (Bonferroni corrected)
+</th>
+<th style="text-align:left;">
+Difference signifcantly smaller 0.5
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+0.7703761
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: red !important;">No</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.7646813
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: red !important;">No</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.5375744
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: red !important;">No</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.5144902
+</td>
+<td style="text-align:right;">
+1.81559
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: red !important;">No</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.3458545
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.2311596
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.1862445
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.1709965
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.1365208
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.1254802
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0842962
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0754252
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0498006
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0306888
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0302106
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0000000
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0000000
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+0.0000000
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:left;">
+<span style="     color: white !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;">Yes</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 <div id="conclusion" class="section level2">
 <h2>Conclusion</h2>

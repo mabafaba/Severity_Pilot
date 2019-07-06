@@ -104,22 +104,8 @@ refugee_severity_bgd_msna18<-function(hh,ind){
   hh_indicators_combined[,-1]<-lapply(hh_indicators_combined[,-1],as.numeric) %>% as_tibble
   
   
-  
-  
-  
 
-    subpillar_scores <- subpillar_scores_from_csvs_bgd(path_to_csvs =  "./input_public/threshold_definitions/refugees/",
-                              subpillars = subpillars<-c(
-                                "edu",
-                                "nfi",
-                                "fsl",
-                                "health",
-                                "protection",
-                                "wash",
-                                "capacity"
-                              ),
-                              data = hh_indicators_combined)
   
-  return(c(subpillar_scores,hh_indicators_combined) %>% as_tibble)
+  return(c(hh_indicators_combined) %>% as_tibble)
   
 }
