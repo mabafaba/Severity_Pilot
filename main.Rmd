@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
-group<-c("host","refugee")[1]
+group<-c("host","refugee")[2]
 
 knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
@@ -20,8 +20,11 @@ library(hypegrammaR)
 library(kableExtra)
 library(msni19)
 library(glue)
+library(stringr)
+library(rgdal)
 library(ggmosaic)
-
+library(sp)
+library(sf)
 source("functions/utilities.R")
 source("functions/loading_inputs.R")
 source("functions/severity_recoding_from_combination_table.R")
@@ -56,6 +59,7 @@ assessment$severity <- severity_compositions(hh  = assessment$data,
 
 assessment$vulnerability <- vulnerability_compositions(hh  = assessment$data,
                                              ind = assessment$loops$individuals)
+
 
 
 if(group == "refugee"){
@@ -94,7 +98,6 @@ assessment$data$msni<-with(assessment$severity,{
 attach(assessment)
 
 
-  
 ```
 
 
@@ -139,6 +142,9 @@ severity_disaggregated <- map_to_result(data,dependent.var = "msni",
                                         weighting = weighting)
 
 
+
+
+
 severity_disaggregated %>%
   map_to_labeled(questionnaire) %>% 
   map_to_table %>% kable %>% kable_styling()
@@ -146,7 +152,82 @@ severity_disaggregated %>%
 ```
 
 
+map the severity
 
+```{r}
+
+
+type_of_analysis<-map_to_case("direct_reporting",
+                  dependent.var.type = "numerical",
+                  independent.var.type = "categorical")
+
+
+severity_disaggregated <- map_to_result(data,dependent.var = "msni",
+                                        independent.var = default_disaggregation,
+                                        case = type_of_analysis,
+                                        weighting = weighting)
+
+
+#LOAD SHAPE FILE
+shp_dir<-"input_public/01_shp"
+layer_name<- "190310_Outline_Rohingya_Refugee_Camp_A1"
+cmp<-readOGR(dsn=shp_dir, layer = layer_name, stringsAsFactors = FALSE)
+
+sum_stats_table<- severity_disaggregated$summary.statistic
+sum_stats<-data.frame(camp_name= sum_stats_table$independent.var.value, mean=round(sum_stats_table$numbers,2))
+
+sum_stats$camp_name<-str_standardize_cxb_camps(sum_stats$camp_name)
+cmp$camp_name<-str_standardize_cxb_camps(cmp$New_Camp_N)
+
+
+cmp_data<-sp::merge(cmp, sum_stats, by= "camp_name", all.x=TRUE, all.y=FALSE)
+
+
+kbc<-c("camp 13", "camp 14", "camp 10",  "camp 6", "camp 18", 
+       "camp 20", "camp 1e",  "camp 17", "camp 9", 
+       "camp 8w", "camp 1w", "camp 15", "camp 5" , "camp 3", 
+       "camp 16", "camp 2w", "camp 20 extension", "camp 11", "camp 4", 
+       "camp 19",  "camp 7", "camp 4 extension", 
+       "camp 8e", "camp 2e", "camp 12")
+
+iso<-c("camp 21", "camp 22","camp 23")
+st<-c("camp 24","camp 25","camp 26","camp 27", "nayapara rc") 
+
+# library("composr")
+
+cmp_data@data<-cmp_data@data %>% 
+  mutate(camp_setting= ifelse(is.na(mean), "Not Assessed",
+                              ifelse( camp_name %in% kbc, "Kutapalong Megacamp",
+                                      ifelse(camp_name %in% iso,"Detached Camps","Southern Teknaf"))))
+
+
+# cmp_data@data<-cmp_data@data %>% new_recoding(region,source = camp_name) %>% 
+#   recode_to("Kutapalong",where.selected.any = kbc, otherwise.to = 'Not Assessed',na.to = 'Not Assessed') %>% 
+#   recode_to("Detached Camps",where.selected.any = iso) %>% 
+#   recode_to("Southern Teknaf",where.selected.any = st) %>% 
+#   end_recoding()
+# table(cmp_data@data$region,cmp_data@data$camp_name)
+
+# cmp_data$region<-ifelse(cmp_data$camp_name %in%  kbc, "Kutapalong",
+#        ifelse(cmp_data$camp_name%in% iso, "Isolated Camps","Southern Teknaf"))
+
+sfdf<-st_as_sf(cmp_data)
+
+
+ggplot(sfdf)+geom_sf(aes(fill=mean))+facet_wrap(vars(camp_setting))
+
+limits<-c(min(sfdf$mean,na.rm = T),max(sfdf$mean,na.rm = T))
+
+sfdf %>% split(sfdf$camp_setting) %>% purrr::map(function(x){
+  ggplot(x)+
+    geom_sf(aes(fill=mean),color = 'white')+
+    theme_minimal()+
+    scale_fill_continuous(limits=limits, name= "Mean Severity Score")+
+    theme(axis.text.x = element_blank(),axis.text.y = element_blank(),axis.ticks = element_blank())+geom_text(aes(label=camp_name, sfdf$geometry))
+})
+
+
+```
 
 
 
