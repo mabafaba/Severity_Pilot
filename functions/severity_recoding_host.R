@@ -41,7 +41,8 @@ host_severity_bgd_msna18<-function(hh,ind){
   more_individual_to_HH<-df %>% 
     mutate(
       born1=ifelse(is.na(birth_place), "no_baby", birth_place),
-      no_dia=ifelse(is.na(child_diarrhea) | child_diarrhea=="no",1,0),yes_dia=ifelse(no_dia==0,1,0),
+      no_dia=ifelse(is.na(child_diarrhea) | child_diarrhea=="no",1,0),
+      yes_dia=ifelse(no_dia==0,1,0),
       treated_rec=ifelse( is.na(diarrhea_treatment), "not_applicable",diarrhea_treatment),
       treated_dia= ifelse(treated_rec!="none",1,0),
       yes_dia_with_treat= ifelse( yes_dia==1 & treated_dia==1,1,0),
@@ -62,7 +63,7 @@ host_severity_bgd_msna18<-function(hh,ind){
                                      ifelse(sum(individual_illness=="yes",na.rm=TRUE)>1,2,0)),
       si.protection.missing_child=ifelse(sum(missing_child=="yes",na.rm=TRUE)>0,2,
                                          ifelse(is.na(sum(missing_child=="yes")),0,0)),
-      si.health.birthplace=ifelse(sum(born1=="home",na.rm=TRUE)>0,2,1),
+      si.health.birthplace=ifelse(sum(born1=="home",na.rm=TRUE)>0,2,0),
       si.health.dia=ifelse(mean(no_dia,na.rm=TRUE)==1, 0,ifelse(sum(yes_dia_with_treat,na.rm=TRUE)==sum(yes_dia,na.rm=TRUE),1,2)),
       si.capacity_gap.child_lab_bad=ifelse(sum.na.rm(work_sit_none)>0,2,0),
       si.health.disability_tr=ifelse(sum(disab_without_treat, na.rm=TRUE)>0,2,ifelse(sum(disab_with_treat,na.rm=TRUE)>0,1,0))
@@ -130,7 +131,7 @@ host_severity_bgd_msna18<-function(hh,ind){
       health.preg= ifelse(is.na(pregnant_women),0,pregnant_women),
       health.preg.clin=ifelse(is.na(clinic_visit_pregnancy),0,clinic_visit_pregnancy),
       si.health.preg= ifelse(health.preg<1,0,ifelse(health.preg>health.preg.clin,2,0)),
-      si.health.health_worker= ifelse(comm_health_worker=="yes",1, ifelse(comm_health_worker %in% c("no","dont_know"),2,NA)),
+      si.health.health_worker= ifelse(comm_health_worker=="yes",0, ifelse(comm_health_worker %in% c("no","dont_know"),2,NA)),
       # si.ios.feedback=ifelse(provide_feedback.dont_know==TRUE,2,0),
       si.edu.materials= ifelse(is.na(edu_aid_material)|edu_aid_material=="yes",1,2),
       edu_barrier_yn= ifelse(boy_prim_edu_barrier+ 
@@ -156,3 +157,4 @@ host_severity_bgd_msna18<-function(hh,ind){
   
 }
 
+               

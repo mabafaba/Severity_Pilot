@@ -7,3 +7,6 @@
 # install.packages("kableExtra")
 # install.packages("glue")
 # install.packages("ggmosaic")
+# install.packages(dplyr)
+# install.packages(rdal)
+# install.packages(sp)
