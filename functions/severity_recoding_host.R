@@ -60,8 +60,7 @@ host_severity_bgd_msna18<-function(hh,ind){
 
 
       si.health.mosq = ifelse(mean(health.mosq=="no",na.rm=TRUE)==1,2,
-                             ifelse(mean(health.mosq=="no", na.rm=TRUE)<1,0,NA)),
-
+                              ifelse(mean(health.mosq=="no", na.rm=TRUE)<1,0,NA)),
 
 
       si.health.indiv_illness=ifelse(sum(individual_illness=="yes",na.rm=TRUE)>0,1,
@@ -120,11 +119,11 @@ host_severity_bgd_msna18<-function(hh,ind){
       shelter_to_total=shelter_expenditure/TotalExpenditure,
       si.shelter.exp=ifelse(shelter_to_total>=0.2, 2, ifelse(shelter_to_total<0.2,0,0)),
       si.shelter.topo=ifelse(ShelterType=="Jhuprie",2,
-                           ifelse(ShelterType=="Kutcha",1,
-                                  ifelse(ShelterType %in% c("Pucca", "SemiPucca"),0,NA))),
+                             ifelse(ShelterType=="Kutcha",1,
+                                    ifelse(ShelterType %in% c("Pucca", "SemiPucca"),0,NA))),
       si.shelter.essential= ifelse(rowSums(.[essential_nfis])>1,2,
-                               ifelse(rowSums(.[essential_nfis])==1,1,
-                                      ifelse(rowSums(.[essential_nfis])<1,0,NA))),
+                                   ifelse(rowSums(.[essential_nfis])==1,1,
+                                          ifelse(rowSums(.[essential_nfis])<1,0,NA))),
       si.wash.improved_water_access = ifelse(is.na(improved_water_access),2,
                                              ifelse(improved_water_access=="intermittently_unpredictable",1,
                                                     ifelse(improved_water_access %in% c("always_year_round","intermittently_predictable"),0,NA))),
@@ -149,7 +148,7 @@ host_severity_bgd_msna18<-function(hh,ind){
       si.capacity_gap.rcsi= ifelse(hhy$rCSI <=4,0, ifelse(rCSI<=10,1,2))
       # si.ios.access_wash_education_health=ifelse(barrier_edu_wash_health>2,2,ifelse(barrier_edu_wash_health>0,1,ifelse(barrier_edu_wash_health==0,0,NA)))
     ) %>% select(instance_name,starts_with("si."))
-
+  
   dl<-list(hh_level,more_individual_to_HH,Individual_to_HH)
   all_indis<-Reduce(function(x, y) merge(x, y, all=TRUE), dl)
   all_indis[,-1]<-lapply(all_indis[,-1],as.numeric) %>% as_tibble
@@ -161,6 +160,3 @@ host_severity_bgd_msna18<-function(hh,ind){
   
   
 }
-
-
-               
