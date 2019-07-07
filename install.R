@@ -8,3 +8,7 @@
 # install.packages(kableExtra)
 # install.packages(msni19)
 # install.packages(glue)
+
+
+# install.packages(rdal)
+# install.packages(sp)
