@@ -238,6 +238,7 @@ for(i in names(vulnerability)){
 
 vulnerability_columns<-names(data) %>% grep("^vi\\.",.,value = T)
 vulnerability_columns<- vulnerability_columns[-1]
+
 for(vi in vulnerability_columns){
 
 cat("\n\n**",vi,"**\n\n")
@@ -251,7 +252,6 @@ comparisons <- compare_each(data,
 comparisons %>% kable_comparison_result_categorical("Location") %>% print
 
 }
-
 
 
 
