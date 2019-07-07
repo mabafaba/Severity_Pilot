@@ -269,9 +269,8 @@ severity_disaggregated %>%
 
 ### Distribution - How 'varied' are the scores?
 ```{r}
-
 design<-map_to_design(data,weighting_function =  weighting)
-standard_deviation <- sqrt(survey::svyvar(~msni,design)[1])
+standard_deviation <- round(sqrt(survey::svyvar(~msni,design,na.rm = T)[1]),2) %>% unname()
 ```
 The overall standard deviation was <b> `r standard_deviation` </b>
 
@@ -345,21 +344,20 @@ for(i in names(vulnerability)){
 
 vulnerability_columns<-names(data) %>% grep("^vi\\.",.,value = T)
 vulnerability_columns<- vulnerability_columns[-1]
-# for(vi in vulnerability_columns){
-# 
-# cat("\n\n**",vi,"**\n\n")
-# data$vi.dependency_ratio %>% table
-# comparisons <- compare_each(data,
-#                             dependent.variable = "msni",
-#                             dependent.variable.type = "categorical",
-#                             independent.variable = vi,
-#                             weighting = weighting)
-# 
-# comparisons %>% kable_comparison_result_categorical("Location") %>% print
-# 
-# }
-# 
 
+for(vi in vulnerability_columns){
+
+cat("\n\n**",vi,"**\n\n")
+if(length(unique(data[[vi]]))>1){
+comparisons <- compare_each(data,
+                            dependent.variable = "msni",
+                            dependent.variable.type = "categorical",
+                            independent.variable = vi,
+                            weighting = weighting)
+
+comparisons %>% kable_comparison_result_categorical(vi) %>% cat
+}
+}
 
 
 ```

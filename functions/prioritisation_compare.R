@@ -107,7 +107,7 @@ kable_comparison_result<-function(results, independent.variable.title){
 
 kable_comparison_result_categorical<-function(results,independent.variable.title){
 
-  comparisons_df<-results
+  comparisons<-results
   
   
   reformat_to_difference_rows<-function(sumstat){
@@ -118,7 +118,7 @@ kable_comparison_result_categorical<-function(results,independent.variable.title
       arrange(as.numeric(as.character(dependent.var.value))) %>% select(independent.var.value,Difference, dependent.var.value,p.value) %>% 
       spread(key = dependent.var.value,value = Difference)
     
-    colnames(sumstat)<-c(independent.variable.title,"p Value",paste("% difference with score",1:4))
+    colnames(sumstat)<-c(independent.variable.title,"p Value",paste("percentage points difference to others",1:4))
     sumstat
   }
 
