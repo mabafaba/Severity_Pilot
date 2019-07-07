@@ -31,13 +31,21 @@ source("functions/plots.R")
 source("./functions/sensitivity_utilities.R")
 source("./functions/sensitivity_indicator_inclusion.R")
 source("./functions/prioritisation_compare.R")
-
+source("./functions/vulnerability_recoding_host.R")
+source("./functions/vulnerability_recoding_refugee.R")
 #  READ INPUT FILES
 
 assessment<-msna18_severity_pilot_load_assessment(group)
 
-if(group=="host") severity_compositions <- host_severity_bgd_msna18
-if(group == "refugee") severity_compositions <- refugee_severity_bgd_msna18
+if(group=="host") {
+  severity_compositions <- host_severity_bgd_msna18
+  vulnerability_compositions <- host_vulnerability_bgd_msna18
+}
+
+if(group == "refugee") {
+  severity_compositions <- refugee_severity_bgd_msna18
+  vulnerability_compositions <- refugee_vulnerability_bgd_msna18
+  }
 
 
 assessment$data %<>% remove_non_consent
@@ -45,7 +53,11 @@ assessment$data %<>% remove_non_consent
 assessment$severity <- severity_compositions(hh  = assessment$data,
                                              ind = assessment$loops$individuals)
 
-assessment$severity$health
+
+assessment$vulnerability <- vulnerability_compositions(hh  = assessment$data,
+                                             ind = assessment$loops$individuals)
+
+
 if(group == "refugee"){
 combination_tables<-read_all_csvs("./input_public/threshold_definitions/refugees/")  
 }else{
@@ -190,24 +202,8 @@ comparisons <- compare_each(data,
                             independent.variable = default_disaggregation,
                             weighting = weighting)
 
+kable_comparison_result(comparisons,independent.variable.title =  "Location")
 
-
-comparisons_df <- comparisons  %>% lapply(function(x){x$summary.statistic}) %>% do.call(rbind,.)
-comparisons_df$p.value.corrected<-comparisons_df$p.value * nrow(comparisons_df)
-
-comparisons_df<-comparisons_df %>%
-  select(independent.var.value,numbers,other.numbers,p.value.corrected) %>% 
-  mutate("difference to other locations" = other.numbers - numbers) %>% 
-  arrange(desc(other.numbers - numbers)) %>%
-  mutate("Significant (at p < 0.01)" = ifelse(p.value.corrected<=0.01,"Yes","No"))
-
-comparisons_df$`Significant (at p < 0.01)`  <-  comparisons_df$`Significant (at p < 0.01)` %>% cell_spec(background = ifelse(comparisons_df$`Significant (at p < 0.01)`=="Yes","green","red"),color = 'white')
-
-comparisons_df$independent.var.value<-questionnaire$question_get_choice_labels(comparisons_df$independent.var.value,variable.name = default_disaggregation)
-comparisons_df<-comparisons_df %>% rename(`Location` = independent.var.value,`Obverved in Location` = numbers, "Other locations" = other.numbers, "p Value (Bonferroni corrected)" = p.value.corrected)
-
-
-comparisons_df %>% kable(escape = FALSE) %>% kable_styling()
 
 
 
@@ -225,36 +221,45 @@ comparisons <- compare_each(data,
                             independent.variable = default_disaggregation,
                             weighting = weighting)
 
+comparisons %>% kable_comparison_result_categorical("Location")
 
 
-reformat_to_difference_rows<-function(sumstat){
-sumstat<-sumstat %>% 
-  select(dependent.var.value,independent.var.value,numbers,other.numbers,p.value) %>%
-  mutate("Difference" = numbers - other.numbers) %>% 
-  gather(,"Difference",Difference) %>%
-  arrange(as.numeric(as.character(dependent.var.value))) %>% select(independent.var.value,Difference, dependent.var.value,p.value) %>% 
-  spread(key = dependent.var.value,value = Difference)
-
-colnames(sumstat)<-c("Location","p Value",paste("% difference with score",1:4))
-sumstat
-}
-
-comparisons_df <- comparisons  %>% lapply(function(x){x$summary.statistic}) %>% lapply(reformat_to_difference_rows) %>% do.call(rbind,.)
-comparisons_df$`P Value (Bonferroni corrected)`<-comparisons_df$`p Value` * nrow(comparisons_df)
-comparisons_df$Location<-questionnaire$question_get_choice_labels(comparisons_df$Location,default_disaggregation)
 
 
-comparisons_df <- comparisons_df %>%
-  mutate("Significant (at p < 0.01)" = ifelse(comparisons_df$`P Value (Bonferroni corrected)`<=0.01,"Yes","No"))
-
-comparisons_df$`Significant (at p < 0.01)`  <-  comparisons_df$`Significant (at p < 0.01)` %>% cell_spec(background = ifelse(comparisons_df$`Significant (at p < 0.01)`=="Yes","green","red"),color = 'white')
-
-comparisons_df %>% kable(escape = FALSE) %>% kable_styling()
 
 
 
 
 ```
+
+### Differences based on Vulnerability Indicators
+
+```{r by vulnerability,results='asis'}
+for(i in names(vulnerability)){
+  data[[i]]<-vulnerability[[i]]
+}
+
+vulnerability_columns<-names(data) %>% grep("^vi\\.",.,value = T)
+vulnerability_columns<- vulnerability_columns[-1]
+for(vi in vulnerability_columns){
+
+cat("\n\n**",vi,"**\n\n")
+data$vi.dependency_ratio %>% table
+comparisons <- compare_each(data,
+                            dependent.variable = "msni",
+                            dependent.variable.type = "categorical",
+                            independent.variable = vi,
+                            weighting = weighting)
+
+comparisons %>% kable_comparison_result_categorical("Location") %>% print
+
+}
+
+
+
+
+```
+
 
 
 ...
@@ -471,40 +476,38 @@ ggplot(msni_varied_and_original)+
 assessment$vulnerability<-host_vulnerability_bgd_msna18(assessment$data,
                                  assessment$loops$individuals)
 
-(data$msni>=3) %>% table
-
-assessment$vulnerability<-refugee_vulnerability_bgd_msna18(assessment$data,
-                                 assessment$loops$individuals)
-
-data_w_vulnerability<-c(data,assessment$vulnerability) %>% as.data.frame(stringsAsFactors = FALSE)
-
-vars_for_factor_analysis<-data_w_vulnerability %>% names %>% grep("^vi.",.,value = TRUE) #
-
-data_w_vulnerability <- data_w_vulnerability[complete.cases(data_w_vulnerability[,c(vars_for_factor_analysis,default_disaggregation)]),]
-
-data_w_vulnerability[,vars_for_factor_analysis]<-lapply(data_w_vulnerability[,vars_for_factor_analysis],as.numeric) %>% as.data.frame(stringsAsFactors=F)
-
-design<-map_to_design(data_w_vulnerability %>% as.data.frame,weighting_function = weighting)
-
-formula<-vars_for_factor_analysis[-1] %>% paste0(.,collapse = "+") %>% paste0("~",.) %>% formula()
-
-design$variables[,vars_for_factor_analysis] %>% lapply(table)
-
-
-
-svyfactanal(formula,
-            design = design,
-            factors = 1)
-
-
-
-
-
-print(fit, digits=2, cutoff=.3, sort=TRUE)
-# plot factor 1 by factor 2
-load <- fit$loadings[,1:2]
-plot(load,type="n") # set up plot
-text(load,labels=names(mydata),cex=.7) # add variable names 
+# 
+# assessment$vulnerability<-refugee_vulnerability_bgd_msna18(assessment$data,
+#                                  assessment$loops$individuals)
+# 
+# data_w_vulnerability<-c(data,assessment$vulnerability) %>% as.data.frame(stringsAsFactors = FALSE)
+# 
+# data_w_vulnerability<-data_w_vulnerability[data_w_vulnerability$msni>=3,]
+# 
+# vars_for_factor_analysis<-data_w_vulnerability %>% names %>% grep("^vi.",.,value = TRUE) #
+# 
+# data_w_vulnerability <- data_w_vulnerability[complete.cases(data_w_vulnerability[,c(vars_for_factor_analysis,default_disaggregation)]),]
+# 
+# data_w_vulnerability[,vars_for_factor_analysis]<-lapply(data_w_vulnerability[,vars_for_factor_analysis],as.numeric) %>% as.data.frame(stringsAsFactors=F)
+# 
+# design<-map_to_design(data_w_vulnerability %>% as.data.frame,weighting_function = weighting)
+# 
+# formula<-vars_for_factor_analysis[-1] %>% paste0(.,collapse = "+") %>% paste0("~",.) %>% formula()
+# 
+# library(FactoMineR)
+# FactoMineR::MFA(data_w_vulnerability[,vars_for_factor_analysis],)
+# 
+# fact<-factanal(formula,
+#             design = data_w_vulnerability,
+#             factors = 1) 
+# 
+# library(factoextra)
+# 
+# print(fit, digits=2, cutoff=.3, sort=TRUE)
+# # plot factor 1 by factor 2
+# load <- fit$loadings[,1:2]
+# plot(load,type="n") # set up plot
+# text(load,labels=names(mydata),cex=.7) # add variable names 
 ```
 
 

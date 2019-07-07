@@ -58,8 +58,10 @@ host_severity_bgd_msna18<-function(hh,ind){
     summarise(
 
 
+
       si.health.mosq = ifelse(mean(health.mosq=="no",na.rm=TRUE)==1,2,
                              ifelse(mean(health.mosq=="no", na.rm=TRUE)<1,0,NA)),
+
 
 
       si.health.indiv_illness=ifelse(sum(individual_illness=="yes",na.rm=TRUE)>0,1,
