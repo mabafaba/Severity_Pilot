@@ -156,72 +156,113 @@ severity_disaggregated %>%
 
 map the severity
 
-```{r}
+```{r, message=FALSE}
 
-if(group=="refugee"){
-  type_of_analysis<-map_to_case("direct_reporting",
-                  dependent.var.type = "numerical",
-                  independent.var.type = "categorical")
-  severity_disaggregated <- map_to_result(data,dependent.var = "msni",
+type_of_analysis<-map_to_case("direct_reporting",
+                              dependent.var.type = "numerical",
+                              independent.var.type = "categorical")
+severity_disaggregated <- map_to_result(data,dependent.var = "msni",
                                         independent.var = default_disaggregation,
                                         case = type_of_analysis,
                                         weighting = weighting)
-  shp_dir<-"input_public/01_shp"
-  layer_name<- "190310_Outline_Rohingya_Refugee_Camp_A1"
-  cmp<-readOGR(dsn=shp_dir, layer = layer_name, stringsAsFactors = FALSE)
-  sum_stats_table<- severity_disaggregated$summary.statistic
-  sum_stats<-data.frame(camp_name= sum_stats_table$independent.var.value, mean=round(sum_stats_table$numbers,2))
-  sum_stats$camp_name<-str_standardize_cxb_camps(sum_stats$camp_name)
-  cmp$camp_name<-str_standardize_cxb_camps(cmp$New_Camp_N)
-  cmp_data<-sp::merge(cmp, sum_stats, by= "camp_name", all.x=TRUE, all.y=FALSE)
-  kbc<-c("camp 13", "camp 14", "camp 10",  "camp 6", "camp 18", 
+shp_dir<-"input_public/01_shp"
+layer_name<- "190310_Outline_Rohingya_Refugee_Camp_A1"
+cmp<-readOGR(dsn=shp_dir, layer = layer_name, stringsAsFactors = FALSE)
+sum_stats_table<- severity_disaggregated$summary.statistic
+sum_stats<-data.frame(camp_name= sum_stats_table$independent.var.value, mean=round(sum_stats_table$numbers,2))
+sum_stats$camp_name<-str_standardize_cxb_camps(sum_stats$camp_name)
+cmp$camp_name<-str_standardize_cxb_camps(cmp$New_Camp_N)
+cmp_data<-sp::merge(cmp, sum_stats, by= "camp_name", all.x=TRUE, all.y=FALSE)
+kbc<-c("camp 13", "camp 14", "camp 10",  "camp 6", "camp 18", 
        "camp 20", "camp 1e",  "camp 17", "camp 9", 
        "camp 8w", "camp 1w", "camp 15", "camp 5" , "camp 3", 
        "camp 16", "camp 2w", "camp 20 extension", "camp 11", "camp 4", 
        "camp 19",  "camp 7", "camp 4 extension", 
        "camp 8e", "camp 2e", "camp 12")
-  iso<-c("camp 21", "camp 22","camp 23")
-  st<-c("camp 24","camp 25","camp 26","camp 27", "nayapara rc") 
-  cmp_data@data<-cmp_data@data %>% 
-    mutate(camp_setting = ifelse(
-      is.na(mean),
-      "Not Assessed",
-      ifelse(
+iso<-c("camp 21", "camp 22","camp 23")
+st<-c("camp 24","camp 25","camp 26","camp 27", "nayapara rc") 
+cmp_data@data<-cmp_data@data %>% 
+  mutate(camp_setting = ifelse(
+    is.na(mean),
+    "Not Assessed",
+    ifelse(
       camp_name %in% kbc,
       "Kutapalong Megacamp",
       ifelse(camp_name %in% iso, "Detached Camps", "Southern Teknaf")
-      )
-      ))
-      
-      
-      # cmp_data@data<-cmp_data@data %>% new_recoding(region,source = camp_name) %>%
-      #   recode_to("Kutapalong",where.selected.any = kbc, otherwise.to = 'Not Assessed',na.to = 'Not Assessed') %>%
-      #   recode_to("Detached Camps",where.selected.any = iso) %>%
-      #   recode_to("Southern Teknaf",where.selected.any = st) %>%
-      #   end_recoding()
-      # table(cmp_data@data$region,cmp_data@data$camp_name)
-      
-      # cmp_data$region<-ifelse(cmp_data$camp_name %in%  kbc, "Kutapalong",
-      #        ifelse(cmp_data$camp_name%in% iso, "Isolated Camps","Southern Teknaf"))
-      
-      sfdf <- st_as_sf(cmp_data)
-      
-      sfdf <- sfdf %>%
-      mutate(
+    )
+  ))
+
+
+# cmp_data@data<-cmp_data@data %>% new_recoding(region,source = camp_name) %>%
+#   recode_to("Kutapalong",where.selected.any = kbc, otherwise.to = 'Not Assessed',na.to = 'Not Assessed') %>%
+#   recode_to("Detached Camps",where.selected.any = iso) %>%
+#   recode_to("Southern Teknaf",where.selected.any = st) %>%
+#   end_recoding()
+# table(cmp_data@data$region,cmp_data@data$camp_name)
+
+# cmp_data$region<-ifelse(cmp_data$camp_name %in%  kbc, "Kutapalong",
+#        ifelse(cmp_data$camp_name%in% iso, "Isolated Camps","Southern Teknaf"))
+
+sfdf <- st_as_sf(cmp_data)
+
+sfdf <- sfdf %>%
+  mutate(
+    lon = purrr::map_dbl(geometry, ~ st_centroid(.x)[[1]]),
+    lat = purrr::map_dbl(geometry, ~ st_centroid(.x)[[2]])
+  )
+
+limits<-c(min(sfdf$mean,na.rm = T),max(sfdf$mean,na.rm = T))
+sfdf %>% split(sfdf$camp_setting) %>% purrr::map(function(x){
+  ggplot(x)+
+    geom_sf(aes(fill=mean),color = 'white')+
+    theme_minimal()+
+    scale_fill_continuous(limits=limits, name= "Mean Severity Score")+
+    theme(axis.text.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks =element_blank())+
+    geom_text_repel(aes(x = lon, y = lat, label = camp_name))})
+  
+  
+  
+  
+  
+  type_of_analysis<-map_to_case("group_difference",
+                                dependent.var.type = "categorical",
+                                independent.var.type = "categorical")
+  severity_disaggregated <- map_to_result(data,dependent.var = "msni",
+                                          independent.var = default_disaggregation,
+                                          case = type_of_analysis,
+                                          weighting = weighting)
+  
+  #score of 
+  sum_stats<-severity_disaggregated$summary.statistic %>% 
+    filter(as.character(dependent.var.value)=="4") %>% 
+    mutate(percent=round(numbers,2)) %>% 
+    select(camp_name= independent.var.value,percent)
+  
+  sum_stats$camp_name<-str_standardize_cxb_camps(sum_stats$camp_name)
+  cmp_data<-sp::merge(cmp_data, sum_stats, by= "camp_name", all.x=TRUE, all.y=FALSE)
+  sfdf <- st_as_sf(cmp_data)
+  
+  sfdf <- sfdf %>%
+    mutate(
       lon = purrr::map_dbl(geometry, ~ st_centroid(.x)[[1]]),
       lat = purrr::map_dbl(geometry, ~ st_centroid(.x)[[2]])
-      )
-      ggplot(sfdf)+geom_sf(aes(fill=mean))+facet_wrap(vars(camp_setting))
-      limits<-c(min(sfdf$mean,na.rm = T),max(sfdf$mean,na.rm = T))
-      sfdf %>% split(sfdf$camp_setting) %>% purrr::map(function(x){
-        ggplot(x)+
-          geom_sf(aes(fill=mean),color = 'white')+
-          theme_minimal()+
-          scale_fill_continuous(limits=limits, name= "Mean Severity Score")+
-          theme(axis.text.x = element_blank(),axis.text.y = element_blank(),axis.ticks =
-                  element_blank())+geom_text_repel(aes(x = lon, y = lat, label = camp_name, )) 
-})}
-
+    )
+  sfdf$percent %>% class()
+  limits<-c(min(sfdf$percent,na.rm = T),max(sfdf$percent,na.rm = T))
+  
+  sfdf %>% split(sfdf$camp_setting) %>% purrr::map(function(x){
+    ggplot(x)+
+      geom_sf(aes(fill=percent),color = 'white')+
+                theme_minimal()+
+                scale_fill_continuous(limits=limits, name= "Percent Severity Score of 4")+
+                theme(axis.text.x = element_blank(),
+                      axis.text.y = element_blank(),
+                      axis.ticks =element_blank())+
+                geom_text_repel(aes(x = lon, y = lat, label = camp_name))})
+  
+  
 
 
 ```
