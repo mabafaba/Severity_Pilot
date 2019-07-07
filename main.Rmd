@@ -77,6 +77,7 @@ assessment$data$msni<-with(assessment$severity,{
 })
 
 
+
 # everything below happening inside "assessment", so attaching for brevity:
 attach(assessment)
 
@@ -466,6 +467,9 @@ ggplot(msni_varied_and_original)+
 
 
 ```{r, eval=FALSE}
+
+assessment$vulnerability<-host_vulnerability_bgd_msna18(assessment$data,
+                                 assessment$loops$individuals)
 
 (data$msni>=3) %>% table
 
