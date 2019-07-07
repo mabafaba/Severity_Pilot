@@ -7,7 +7,7 @@ str_standardize<- function(name_string){
 str_standardize_cxb_camps<-function(x){
   str_standardize(x) %>% str_replace_all(c("extn"= "extension"))
 }
-nam
+
 
 #' TITLE
 #'
