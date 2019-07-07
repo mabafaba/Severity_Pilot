@@ -1,5 +1,5 @@
 ---
-title: "pilot"
+title: "Severity Scores: BGD Pilot"
 author: "REACH BGD"
 date: "2 July 2019"
 output:
@@ -30,6 +30,7 @@ source("functions/severity_recoding_refugee.R")
 source("functions/plots.R")
 source("./functions/sensitivity_utilities.R")
 source("./functions/sensitivity_indicator_inclusion.R")
+source("./functions/prioritisation_compare.R")
 
 #  READ INPUT FILES
 
@@ -84,13 +85,19 @@ attach(assessment)
 
 
 
-# Severity Scoring Pilot `r ifelse(group=="host","Host Community", "Refugees")`
+# `r ifelse(group=="host","Host Community", "Refugees")`
 
 ## Summary
 
-### Results by Union
 
-Distribution of severity:
+
+- The index 
+
+
+
+## Results
+
+Estimated distribution of severity:
 
 ```{r,fig.height = 20,fig.width = 5}
 
@@ -122,6 +129,10 @@ severity_disaggregated %>%
   map_to_table %>% kable %>% kable_styling()
 
 ```
+
+
+
+
 
 
 ```{r,fig.height=10}
@@ -156,14 +167,103 @@ ggplot(ecdf, aes(x, cum.pct)) +
 
 ```
 
-## Results
+
 
 ## Methodology
 
+....
+
+## Applicability for Prioritisation
+
+In the pilot dataset, the scores generally do not vary enough to identify singificant differences (with p< 0.01) at a disaggregation level sampled for 90% confidence with a 10% error margin. We tested for differences treating the Severity score as numerical and as categorical (nominal)
+
+### Differences between locations (severity numerical)
+
+```{r}
+
+comparisons <- compare_each(data,
+                            dependent.variable = "msni",
+                            dependent.variable.type = "numerical",
+                            independent.variable = default_disaggregation,
+                            weighting = weighting)
+
+
+
+comparisons_df <- comparisons  %>% lapply(function(x){x$summary.statistic}) %>% do.call(rbind,.)
+comparisons_df$p.value.corrected<-comparisons_df$p.value * nrow(comparisons_df)
+
+comparisons_df<-comparisons_df %>%
+  select(independent.var.value,numbers,other.numbers,p.value.corrected) %>% 
+  mutate("difference to other locations" = other.numbers - numbers) %>% 
+  arrange(desc(other.numbers - numbers)) %>%
+  mutate("Significant (at p < 0.01)" = ifelse(p.value.corrected<=0.01,"Yes","No"))
+
+comparisons_df$`Significant (at p < 0.01)`  <-  comparisons_df$`Significant (at p < 0.01)` %>% cell_spec(background = ifelse(comparisons_df$`Significant (at p < 0.01)`=="Yes","green","red"),color = 'white')
+
+comparisons_df$independent.var.value<-questionnaire$question_get_choice_labels(comparisons_df$independent.var.value,variable.name = default_disaggregation)
+comparisons_df<-comparisons_df %>% rename(`Location` = independent.var.value,`Obverved in Location` = numbers, "Other locations" = other.numbers, "p Value (Bonferroni corrected)" = p.value.corrected)
+
+
+comparisons_df %>% kable(escape = FALSE) %>% kable_styling()
+
+
+
+```
+
+### Differences between locations (severity categorical)
+
+
+```{r}
+
+
+comparisons <- compare_each(data,
+                            dependent.variable = "msni",
+                            dependent.variable.type = "categorical",
+                            independent.variable = default_disaggregation,
+                            weighting = weighting)
+
+
+
+reformat_to_difference_rows<-function(sumstat){
+sumstat<-sumstat %>% 
+  select(dependent.var.value,independent.var.value,numbers,other.numbers,p.value) %>%
+  mutate("Difference" = numbers - other.numbers) %>% 
+  gather(,"Difference",Difference) %>%
+  arrange(as.numeric(as.character(dependent.var.value))) %>% select(independent.var.value,Difference, dependent.var.value,p.value) %>% 
+  spread(key = dependent.var.value,value = Difference)
+
+colnames(sumstat)<-c("Location","p Value",paste("% difference with score",1:4))
+sumstat
+}
+
+comparisons_df <- comparisons  %>% lapply(function(x){x$summary.statistic}) %>% lapply(reformat_to_difference_rows) %>% do.call(rbind,.)
+comparisons_df$`P Value (Bonferroni corrected)`<-comparisons_df$`p Value` * nrow(comparisons_df)
+comparisons_df$Location<-questionnaire$question_get_choice_labels(comparisons_df$Location,default_disaggregation)
+
+
+comparisons_df <- comparisons_df %>%
+  mutate("Significant (at p < 0.01)" = ifelse(comparisons_df$`P Value (Bonferroni corrected)`<=0.01,"Yes","No"))
+
+comparisons_df$`Significant (at p < 0.01)`  <-  comparisons_df$`Significant (at p < 0.01)` %>% cell_spec(background = ifelse(comparisons_df$`Significant (at p < 0.01)`=="Yes","green","red"),color = 'white')
+
+comparisons_df %>% kable(escape = FALSE) %>% kable_styling()
+
+
+
+
+```
+
+
+...
+
+## Exploratory Analysis: Profiles of Households with severe needs
+
+...
 
 ## Sensitivity and Robustness
 
-Missing values in composite indicators
+### Missing values in composite indicators
+
 ```{r}
 
 percent_na_sev<-severity[,-1] %>% lapply(percent_na) %>% unlist
@@ -185,9 +285,28 @@ msni_varied_indicators<-msni_variations(combination_tables,
                                         variation_function = vary_combination_tables_indicator_inclusion)
 
 ```
-We show that overall, the index is not overly affected by removing (and by extension adding) individual indicators from the calculation, with the exception of three indicators whos importance warrants a stronger impact.
 
-We test how sensitive the index is with regards to which indicators are included; The overall score should ideally not be completely changed if specific indicators are added or removed; at the same time we should expect at least some variation based on which indicators are included. Prior to analysis, we choose a threshold of **a difference of 0.5 on the 1-4 scale that should ideally not be surpassed** if an individual indicator is removed (or added). We recalculate the score after removing each of the `r ncol(msni_varied_indicators)` sub-indicators , and test for each one whether the difference to the complete index exceeds 0.5
+
+```{r, results='asis'}
+
+cat(if(group == "refugee"){
+
+"We show that overall, the index is not overly affected by removing (and by extension adding) individual indicators from the calculation, with the exception of three indicators whos importance warrants a stronger impact."
+  
+} else if( group == "host"){
+  
+"We show that overall, the index is not overly affected by removing (and by extension adding) individual indicators from the calculation."
+  
+  
+  }
+)
+
+cat(paste("We test how sensitive the index is with regards to which indicators are included; The overall score should ideally not be completely changed if specific indicators are added or removed; at the same time we should expect at least some variation based on which indicators are included. Prior to analysis, we choose a threshold of **a difference of 0.5 on the 1-4 scale that should ideally not be surpassed** if an individual indicator is removed (or added). We recalculate the score after removing each of the",ncol(msni_varied_indicators),"sub-indicators , and test for each one whether the difference to the complete index exceeds 0.5"))
+
+
+```
+
+
 
 ```{r}
 
@@ -209,11 +328,22 @@ sensitivity_test_table %>% kable(escape = FALSE) %>% kable_styling()
 
 ```
 
-The overall index changes more than 0.5 points when removing the indicators for _drinking water source_ (WASH), _child marriage to reduce economic burden_ (Capacity Gaps) and _water access quantity_ (WASH). In the composite index, these indicators were consiously selected to have strong impact. As such, it is expected that their removal would have a strong impact on the results.
+```{r,results = 'asis'}
+cat(if(group == "refugee"){
 
-The index is robust towards all other indicators within the threshold of 0.5 points on the scale.
+"The overall index changes more than 0.5 points when removing the indicators for _drinking water source_ (WASH), _child marriage to reduce economic burden_ (Capacity Gaps) and _water access quantity_ (WASH). In the composite index, these indicators were consiously selected to have strong impact. As such, it is expected that their removal would have a strong impact on the results.
 
-
+The index is robust towards all other indicators within the threshold of 0.5 points on the scale."
+  
+} else if( group == "host"){
+  
+  
+  "None of the indicators led to a change of more than 0.5 in the average score when removed. This suggests that the index is robust towards inclusion / exclusion of indicators"  
+  
+  
+  }
+)
+```
 
 ```{r mosaic plot}
 
@@ -262,8 +392,6 @@ msni_varied_thresholds<-msni_variations(combination_tables,
 
 ```
 
-
-[[interpretation]]
 
 
 ```{r}
@@ -329,14 +457,50 @@ msni_varied_and_original$value<-round(msni_varied_and_original$value,2)
 msni_varied_and_original<-msni_varied_and_original[!is.na(msni_varied_and_original),]
 ggplot(msni_varied_and_original)+
   geom_mosaic(aes(weight=weights,
-                  x=product(msni,value),fill = (msni)))+scale_fill_brewer(name = "actual MSNI score")+theme_minimal()+theme(axis.text.y = element_blank())+xlab("MSNI score with one indicator removed")+ylab("")
+                  x=product(msni,value),fill = (msni)))+scale_fill_brewer(name = "actual MSNI score")+theme_minimal()+theme(axis.text.y = element_blank())+xlab("MSNI score with one subpillar changed randomly  (+/- 1)")+ylab("")
 
 ```
 
+
+
+```{r}
+
+(data$msni>=3) %>% table
+
+assessment$vulnerability<-refugee_vulnerability_bgd_msna18(assessment$data,
+                                 assessment$loops$individuals)
+
+data_w_vulnerability<-c(data,assessment$vulnerability) %>% as.data.frame(stringsAsFactors = FALSE)
+
+vars_for_factor_analysis<-data_w_vulnerability %>% names %>% grep("^vi.",.,value = TRUE) #
+
+data_w_vulnerability <- data_w_vulnerability[complete.cases(data_w_vulnerability[,c(vars_for_factor_analysis,default_disaggregation)]),]
+
+data_w_vulnerability[,vars_for_factor_analysis]<-lapply(data_w_vulnerability[,vars_for_factor_analysis],as.numeric) %>% as.data.frame(stringsAsFactors=F)
+
+design<-map_to_design(data_w_vulnerability %>% as.data.frame,weighting_function = weighting)
+
+formula<-vars_for_factor_analysis[-1] %>% paste0(.,collapse = "+") %>% paste0("~",.) %>% formula()
+
+design$variables[,vars_for_factor_analysis] %>% lapply(table)
+
+
+
+svyfactanal(formula,
+            design = design,
+            factors = 1)
+
+
+
+
+
+print(fit, digits=2, cutoff=.3, sort=TRUE)
+# plot factor 1 by factor 2
+load <- fit$loadings[,1:2]
+plot(load,type="n") # set up plot
+text(load,labels=names(mydata),cex=.7) # add variable names 
 ```
 
-
-## Conclusion
 
 
 
