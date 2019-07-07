@@ -25,6 +25,7 @@ library(rgdal)
 library(ggmosaic)
 library(sp)
 library(sf)
+
 source("functions/utilities.R")
 source("functions/loading_inputs.R")
 source("functions/severity_recoding_from_combination_table.R")
@@ -36,6 +37,7 @@ source("./functions/sensitivity_indicator_inclusion.R")
 source("./functions/prioritisation_compare.R")
 source("./functions/vulnerability_recoding_host.R")
 source("./functions/vulnerability_recoding_refugee.R")
+source("./functions/gis.R")
 #  READ INPUT FILES
 
 assessment<-msna18_severity_pilot_load_assessment(group)
@@ -213,17 +215,21 @@ cmp_data@data<-cmp_data@data %>%
 
 sfdf<-st_as_sf(cmp_data)
 
-
+sfdf<-sfdf %>% 
+  mutate(
+    lon= purrr::map_dbl(geometry, ~st_centroid(.x)[[1]]),
+    lat= purrr::map_dbl(geometry, ~st_centroid(.x)[[2]])
+  )
 ggplot(sfdf)+geom_sf(aes(fill=mean))+facet_wrap(vars(camp_setting))
 
 limits<-c(min(sfdf$mean,na.rm = T),max(sfdf$mean,na.rm = T))
-
+library(ggrepel)
 sfdf %>% split(sfdf$camp_setting) %>% purrr::map(function(x){
   ggplot(x)+
     geom_sf(aes(fill=mean),color = 'white')+
     theme_minimal()+
     scale_fill_continuous(limits=limits, name= "Mean Severity Score")+
-    theme(axis.text.x = element_blank(),axis.text.y = element_blank(),axis.ticks = element_blank())+geom_text(aes(label=camp_name, sfdf$geometry))
+    theme(axis.text.x = element_blank(),axis.text.y = element_blank(),axis.ticks = element_blank())+geom_text_repel(aes(x = lon, y = lat, label = camp_name, )) 
 })
 
 
