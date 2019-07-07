@@ -173,14 +173,14 @@ bgd_refugee_add_standard_regions_to_data<-function(data,location_column){
   
   camp_name<-str_standardize_cxb_camps(data[,location_column])
   
-  
+  attach(regions)
   data <- data %>% mutate(region = ifelse(
       camp_name %in% kbc,
       "Kutapalong Megacamp",
       ifelse(camp_name %in% iso, "Detached Camps", "Southern Teknaf")
     ))
 
-  
+  detach(regions)
   data
 }
 

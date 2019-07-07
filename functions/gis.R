@@ -71,6 +71,38 @@ choropleth<- function(spatial_data, label_col=NULL, numeric_col,title_map= NULL)
 
 
 
-
+result_disaggregated_by_match_id_as_map<-function(result,assessment, color_scale_name = "Mean Severity Score"){
+  severity_disaggregated<-result
+  sum_stats_table<- severity_disaggregated$summary.statistic
+  sum_stats<-data.frame(match_id= sum_stats_table$independent.var.value, mean=round(sum_stats_table$numbers,2),stringsAsFactors = FALSE)
+  
+  sum_stats$match_id<-str_standardize_cxb_camps(sum_stats$match_id)
+  
+  sf<-assessment_data_as_sf(sum_stats,assessment)
+  
+  
+  sf <- sf %>%
+    mutate(
+      lon = purrr::map_dbl(geometry, ~ st_centroid(.x)[[1]]),
+      lat = purrr::map_dbl(geometry, ~ st_centroid(.x)[[2]])
+    )
+  
+  
+  
+  limits<-c(min(sf$mean,na.rm = T),max(sf$mean,na.rm = T))
+  plots<-sf %>% split(sf[["region"]]) %>% purrr::map(function(x){
+    plot <- ggplot(x)+
+      geom_sf(aes(fill=mean),color = 'white')+
+      theme_minimal()+
+      scale_fill_continuous(limits=limits, name= color_scale_name)+
+      theme(axis.text.x = element_blank(),
+            axis.text.y = element_blank(),
+            axis.ticks =element_blank())+
+      geom_text_repel(aes(x = lon, y = lat, label = match_id))
+    print(plot)
+  })
+  
+  
+}
 
 

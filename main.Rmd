@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
-group<-c("host","refugee")[1]
+group<-c("host","refugee")[2]
 
 knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
@@ -153,107 +153,6 @@ severity_disaggregated %>%
 
 ```
 
-
-map the severity
-
-```{r, message=FALSE, warning = FALSE}
-
-type_of_analysis<-map_to_case("direct_reporting",
-                              dependent.var.type = "numerical",
-                              independent.var.type = "categorical")
-severity_disaggregated <- map_to_result(data,dependent.var = "msni",
-                                        independent.var = default_disaggregation,
-                                        case = type_of_analysis,
-                                        weighting = weighting)
-
-sum_stats_table<- severity_disaggregated$summary.statistic
-sum_stats<-data.frame(match_id= sum_stats_table$independent.var.value, mean=round(sum_stats_table$numbers,2),stringsAsFactors = FALSE)
-
-sum_stats$match_id<-str_standardize_cxb_camps(sum_stats$match_id)
-
-sf<-assessment_data_as_sf(sum_stats,assessment)
-
-# cmp_data@data<-cmp_data@data %>% new_recoding(region,source = camp_name) %>%
-#   recode_to("Kutapalong",where.selected.any = kbc, otherwise.to = 'Not Assessed',na.to = 'Not Assessed') %>%
-#   recode_to("Detached Camps",where.selected.any = iso) %>%
-#   recode_to("Southern Teknaf",where.selected.any = st) %>%
-#   end_recoding()
-# table(cmp_data@data$region,cmp_data@data$camp_name)
-
-# cmp_data$region<-ifelse(cmp_data$camp_name %in%  kbc, "Kutapalong",
-#        ifelse(cmp_data$camp_name%in% iso, "Isolated Camps","Southern Teknaf"))
-
-
-sf <- sf %>%
-  mutate(
-    lon = purrr::map_dbl(geometry, ~ st_centroid(.x)[[1]]),
-    lat = purrr::map_dbl(geometry, ~ st_centroid(.x)[[2]])
-  )
-
-
-
-limits<-c(min(sf$mean,na.rm = T),max(sf$mean,na.rm = T))
-plots<-sf %>% split(sf[["region"]]) %>% purrr::map(function(x){
-  plot <- ggplot(x)+
-    geom_sf(aes(fill=mean),color = 'white')+
-    theme_minimal()+
-    scale_fill_continuous(limits=limits, name= "Mean Severity Score")+
-    theme(axis.text.x = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks =element_blank())+
-    geom_text_repel(aes(x = lon, y = lat, label = match_id))
-  print(plot)
-  })
-  
-  
-  
-  
-  
-  type_of_analysis<-map_to_case("group_difference",
-                                dependent.var.type = "categorical",
-                                independent.var.type = "categorical")
-  severity_disaggregated <- map_to_result(data,dependent.var = "msni",
-                                          independent.var = default_disaggregation,
-                                          case = type_of_analysis,
-                                          weighting = weighting)
-  
-  #score of 
-  sum_stats<-severity_disaggregated$summary.statistic %>% 
-    filter(as.character(dependent.var.value)=="4") %>% 
-    mutate(percent=round(numbers,2)) %>% 
-    select(camp_name= independent.var.value,percent)
-  
-  sum_stats$camp_name<-str_standardize_cxb_camps(sum_stats$camp_name)
-  cmp_data<-sp::merge(cmp_data, sum_stats, by= "camp_name", all.x=TRUE, all.y=FALSE)
-  sfdf <- st_as_sf(cmp_data)
-  
-  sfdf <- sfdf %>%
-    mutate(
-      lon = purrr::map_dbl(geometry, ~ st_centroid(.x)[[1]]),
-      lat = purrr::map_dbl(geometry, ~ st_centroid(.x)[[2]])
-    )
-
-  limits<-c(min(sfdf$percent,na.rm = T),max(sfdf$percent,na.rm = T))
-  
-  plots<-sfdf %>% split(sfdf$camp_setting) %>% purrr::map(function(x){
-    plot<-ggplot(x)+
-      geom_sf(aes(fill=percent),color = 'white')+
-                theme_minimal()+
-                scale_fill_continuous(limits=limits, name= "Percent Severity Score of 4")+
-                theme(axis.text.x = element_blank(),
-                      axis.text.y = element_blank(),
-                      axis.ticks =element_blank())+
-                geom_text_repel(aes(x = lon, y = lat, label = camp_name))
-        print(plot)
-    })
-  
-
-
-
-```
-
-
-
 ```{r,fig.height=10}
 
 
@@ -265,6 +164,81 @@ severity_disaggregated %>%
 
 
 ```
+
+
+### Map Severities
+
+```{r, message=FALSE, warning = FALSE}
+
+type_of_analysis<-map_to_case("direct_reporting",
+                              dependent.var.type = "numerical",
+                              independent.var.type = "categorical")
+
+severity_disaggregated <- map_to_result(data,dependent.var = "msni",
+                                        independent.var = default_disaggregation,
+                                        case = type_of_analysis,
+                                        weighting = weighting)
+
+severity_disaggregated %>% result_disaggregated_by_match_id_as_map(assessment)
+  
+  
+  
+  type_of_analysis<-map_to_case("group_difference",
+                                dependent.var.type = "categorical",
+                                independent.var.type = "categorical")
+  
+  severity_disaggregated <- map_to_result(data,dependent.var = "msni",
+                                          independent.var = default_disaggregation,
+                                          case = type_of_analysis,
+                                          weighting = weighting)
+  
+  
+  severity_disaggregated$summary.statistic<-severity_disaggregated$summary.statistic %>% 
+    filter(as.character(dependent.var.value)=="4")
+    # mutate(percent=round(numbers,2)) %>%
+    # select(camp_name= independent.var.value,percent)
+  # 
+  
+    severity_disaggregated %>% result_disaggregated_by_match_id_as_map(assessment,
+                                                                       color_scale_name = "% population with Severity 4")
+  # #score of 
+  # sum_stats<-severity_disaggregated$summary.statistic %>% 
+  #   filter(as.character(dependent.var.value)=="4") %>% 
+  #   mutate(percent=round(numbers,2)) %>% 
+  #   select(camp_name= independent.var.value,percent)
+  # 
+  # sum_stats$camp_name<-str_standardize_cxb_camps(sum_stats$camp_name)
+  # 
+  # sfdf <- st_as_sf(cmp_data)
+  # 
+  # sfdf <- sfdf %>%
+  #   mutate(
+  #     lon = purrr::map_dbl(geometry, ~ st_centroid(.x)[[1]]),
+  #     lat = purrr::map_dbl(geometry, ~ st_centroid(.x)[[2]])
+  #   )
+  # 
+  # limits<-c(min(sfdf$percent,na.rm = T),max(sfdf$percent,na.rm = T))
+  # 
+  # plots<-sfdf %>% split(sfdf$camp_setting) %>% purrr::map(function(x){
+  #   plot<-ggplot(x)+
+  #     geom_sf(aes(fill=percent),color = 'white')+
+  #               theme_minimal()+
+  #               scale_fill_continuous(limits=limits, name= "Percent Severity Score of 4")+
+  #               theme(axis.text.x = element_blank(),
+  #                     axis.text.y = element_blank(),
+  #                     axis.ticks =element_blank())+
+  #               geom_text_repel(aes(x = lon, y = lat, label = camp_name))
+  #       print(plot)
+  #   })
+  # 
+
+
+
+```
+
+
+
+
 
 
 ### Distribution - How 'varied' are the scores?
