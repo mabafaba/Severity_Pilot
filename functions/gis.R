@@ -65,3 +65,12 @@ choropleth<- function(spatial_data, label_col=NULL, numeric_col,title_map= NULL)
 }
 
 
+
+
+
+
+
+
+
+
+

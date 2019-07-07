@@ -165,32 +165,14 @@ severity_disaggregated <- map_to_result(data,dependent.var = "msni",
                                         independent.var = default_disaggregation,
                                         case = type_of_analysis,
                                         weighting = weighting)
-shp_dir<-"input_public/01_shp"
-layer_name<- "190310_Outline_Rohingya_Refugee_Camp_A1"
-cmp<-readOGR(dsn=shp_dir, layer = layer_name, stringsAsFactors = FALSE)
+
 sum_stats_table<- severity_disaggregated$summary.statistic
 sum_stats<-data.frame(camp_name= sum_stats_table$independent.var.value, mean=round(sum_stats_table$numbers,2))
-sum_stats$camp_name<-str_standardize_cxb_camps(sum_stats$camp_name)
-cmp$camp_name<-str_standardize_cxb_camps(cmp$New_Camp_N)
+
 cmp_data<-sp::merge(cmp, sum_stats, by= "camp_name", all.x=TRUE, all.y=FALSE)
-kbc<-c("camp 13", "camp 14", "camp 10",  "camp 6", "camp 18", 
-       "camp 20", "camp 1e",  "camp 17", "camp 9", 
-       "camp 8w", "camp 1w", "camp 15", "camp 5" , "camp 3", 
-       "camp 16", "camp 2w", "camp 20 extension", "camp 11", "camp 4", 
-       "camp 19",  "camp 7", "camp 4 extension", 
-       "camp 8e", "camp 2e", "camp 12")
-iso<-c("camp 21", "camp 22","camp 23")
-st<-c("camp 24","camp 25","camp 26","camp 27", "nayapara rc") 
+
 cmp_data@data<-cmp_data@data %>% 
-  mutate(camp_setting = ifelse(
-    is.na(mean),
-    "Not Assessed",
-    ifelse(
-      camp_name %in% kbc,
-      "Kutapalong Megacamp",
-      ifelse(camp_name %in% iso, "Detached Camps", "Southern Teknaf")
-    )
-  ))
+
 
 
 # cmp_data@data<-cmp_data@data %>% new_recoding(region,source = camp_name) %>%

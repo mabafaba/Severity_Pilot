@@ -14,6 +14,8 @@ msna18_severity_pilot_load_assessment<-function(group){
                                   asdf = "xasdf")
     
     
+    
+    
   }else if(group=="refugee"){
     assessment <- load_assessment(data_csv = "./input/RefugeeMSNA_csv/Refugee_MSNA_HH.csv",
                                   loops_csv = c(individuals = "./input/RefugeeMSNA_csv/Refugee_MSNA_Indiv_Data.csv"),
@@ -23,11 +25,15 @@ msna18_severity_pilot_load_assessment<-function(group){
                                   data.stratum.column = "camp_location",
                                   sampling.frame.population.column = "Total.Families",
                                   sampling.frame.stratum.column = "Camps",
-                                  default_disaggregation = "camp_location")
+                                  default_disaggregation = "camp_location",
+                                  shp_dir = "input_public/01_shp",
+                                  layer_name = "190310_Outline_Rohingya_Refugee_Camp_A1")
     
     
+    assessment$shp$camp_name <- str_standardize_cxb_camps(assessment$shp$New_Camp_N)
+    assessment$data <- bgd_refugee_add_standard_regions_to_data(assessment$data)
     
-  }else{
+   }else{
     stop("'group' parameter at top of Rmd must be 'host' or 'refugee")
   }
   return(assessment)
@@ -44,7 +50,9 @@ load_assessment<-function(data_csv,
                           data.stratum.column,
                           sampling.frame.population.column,
                           sampling.frame.stratum.column,
-                          default_disaggregation,...){
+                          default_disaggregation,
+                          shp_dir = NULL,
+                          shp_layer = NULL,...){
 
 # read csv files & standardise
 data<-read.csv(data_csv,stringsAsFactors = F) %>% standardise_data(data.stratum.column = data.stratum.column)
@@ -85,11 +93,20 @@ weighting<-map_to_weighting(samplingframe,
                            )
 
 
+
+if(!is.null(shp_dir) & !is.null(layer_name)){
+  cmp<-readOGR(dsn=shp_dir, layer = layer_name, stringsAsFactors = FALSE)
+}
+
+
+
+
 return(c(list(data=data,
             questionnaire = questionnaire,
             weighting = weighting,
             default_disaggregation = default_disaggregation,
-            loops = loops),
+            loops = loops,
+            shp = shp),
          ...))
 
 
@@ -127,5 +144,74 @@ standardise_data<-function(data,data.stratum.column){
 remove_non_consent<-function(data,consent_col = "survey_consent", consent_value = "yes"){
   data[data[[consent_col]]=="yes",,drop = FALSE]
 }
+
+
+
+
+
+
+
+
+
+bgd_refugee_add_standard_regions_to_data<-function(data,location_csolumn, region_column){
+  
+  regions<-list(kbc = c("camp 13", "camp 14", "camp 10",  "camp 6", "camp 18", 
+                        "camp 20", "camp 1e",  "camp 17", "camp 9", 
+                        "camp 8w", "camp 1w", "camp 15", "camp 5" , "camp 3", 
+                        "camp 16", "camp 2w", "camp 20 extension", "camp 11", "camp 4", 
+                        "camp 19",  "camp 7", "camp 4 extension", 
+                        "camp 8e", "camp 2e", "camp 12"),
+                iso = c("camp 21", "camp 22","camp 23"),
+                st = c("camp 24","camp 25","camp 26","camp 27", "nayapara rc"))
+  
+  
+  camp_name<-str_standardize_cxb_camps(data$camp_location)
+  
+  
+  data <- data %>% mutate(region = ifelse(
+    is.na(mean),
+    "Not Assessed",
+    ifelse(
+      camp_name %in% kbc,
+      "Kutapalong Megacamp",
+      ifelse(camp_name %in% iso, "Detached Camps", "Southern Teknaf")
+    )
+  ))
+  
+  data
+}
+
+
+
+
+
+host_refugee_add_standard_regions_to_data<-function(data,location_csolumn, region_column){
+  
+  regions<-list(kbc = c("camp 13", "camp 14", "camp 10",  "camp 6", "camp 18", 
+                        "camp 20", "camp 1e",  "camp 17", "camp 9", 
+                        "camp 8w", "camp 1w", "camp 15", "camp 5" , "camp 3", 
+                        "camp 16", "camp 2w", "camp 20 extension", "camp 11", "camp 4", 
+                        "camp 19",  "camp 7", "camp 4 extension", 
+                        "camp 8e", "camp 2e", "camp 12"),
+                iso = c("camp 21", "camp 22","camp 23"),
+                st = c("camp 24","camp 25","camp 26","camp 27", "nayapara rc"))
+  
+  
+  camp_name<-str_standardize_cxb_camps(data$camp_location)
+  
+  
+  data <- data %>% mutate(region = ifelse(
+    is.na(mean),
+    "Not Assessed",
+    ifelse(
+      camp_name %in% kbc,
+      "Kutapalong Megacamp",
+      ifelse(camp_name %in% iso, "Detached Camps", "Southern Teknaf")
+    )
+  ))
+  
+  data
+}
+
 
 
