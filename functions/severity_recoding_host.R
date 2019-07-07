@@ -56,9 +56,19 @@ host_severity_bgd_msna18<-function(hh,ind){
     
     group_by(instance_name) %>% 
     summarise(
+
+
+
       si.health.mosq = ifelse(mean(health.mosq=="no",na.rm=TRUE)==1,2,
+<<<<<<< HEAD
                               ifelse(mean(health.mosq=="no", na.rm=TRUE)<1,0,NA)),
       
+=======
+                             ifelse(mean(health.mosq=="no", na.rm=TRUE)<1,0,NA)),
+
+
+
+>>>>>>> 07deb898850048a89a451f3c3efdf974c52cd9a1
       si.health.indiv_illness=ifelse(sum(individual_illness=="yes",na.rm=TRUE)>0,1,
                                      ifelse(sum(individual_illness=="yes",na.rm=TRUE)>1,2,0)),
       si.protection.missing_child=ifelse(sum(missing_child=="yes",na.rm=TRUE)>0,2,
@@ -157,3 +167,8 @@ host_severity_bgd_msna18<-function(hh,ind){
   
 }
 
+<<<<<<< HEAD
+=======
+
+               
+>>>>>>> 07deb898850048a89a451f3c3efdf974c52cd9a1

@@ -57,6 +57,7 @@ assessment$severity <- severity_compositions(hh  = assessment$data,
 assessment$vulnerability <- vulnerability_compositions(hh  = assessment$data,
                                              ind = assessment$loops$individuals)
 
+
 if(group == "refugee"){
 combination_tables<-read_all_csvs("./input_public/threshold_definitions/refugees/")  
 }else{
@@ -86,6 +87,7 @@ assessment$data$msni<-with(assessment$severity,{
                impact = impact,
                capacity_gaps = capacity)
 })
+
 
 
 # everything below happening inside "assessment", so attaching for brevity:
@@ -135,6 +137,7 @@ severity_disaggregated <- map_to_result(data,dependent.var = "msni",
                                         independent.var = default_disaggregation,
                                         case = type_of_analysis,
                                         weighting = weighting)
+
 
 severity_disaggregated %>%
   map_to_labeled(questionnaire) %>% 
@@ -468,7 +471,10 @@ ggplot(msni_varied_and_original)+
 
 
 
-```{r}
+```{r, eval=FALSE}
+
+assessment$vulnerability<-host_vulnerability_bgd_msna18(assessment$data,
+                                 assessment$loops$individuals)
 
 # 
 # assessment$vulnerability<-refugee_vulnerability_bgd_msna18(assessment$data,
