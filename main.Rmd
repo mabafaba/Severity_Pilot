@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
-group<-c("host","refugee")[2]
+group<-c("host","refugee")[1]
 
 knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
@@ -165,42 +165,14 @@ severity_disaggregated <- map_to_result(data,dependent.var = "msni",
                                         independent.var = default_disaggregation,
                                         case = type_of_analysis,
                                         weighting = weighting)
-<<<<<<< HEAD
 
-=======
-shp_dir<-"input_public/01_shp"
-layer_name<- "190310_Outline_Rohingya_Refugee_Camp_A1"
-
-
-```
-
-```{r,include=FALSE}
-cmp<-readOGR(dsn=shp_dir, layer = layer_name, stringsAsFactors = FALSE)
-```
-
-```{r}
->>>>>>> master
 sum_stats_table<- severity_disaggregated$summary.statistic
-sum_stats<-data.frame(camp_name= sum_stats_table$independent.var.value, mean=round(sum_stats_table$numbers,2))
+sum_stats<-data.frame(match_id= sum_stats_table$independent.var.value, mean=round(sum_stats_table$numbers,2),stringsAsFactors = FALSE)
 
-cmp_data<-sp::merge(cmp, sum_stats, by= "camp_name", all.x=TRUE, all.y=FALSE)
+sum_stats$match_id<-str_standardize_cxb_camps(sum_stats$match_id)
 
-cmp_data@data<-cmp_data@data %>% 
-<<<<<<< HEAD
+sf<-assessment_data_as_sf(sum_stats,assessment)
 
-
-
-=======
-  mutate(camp_setting = ifelse(
-    is.na(mean),
-    "Not Assessed",
-    ifelse(
-      camp_name %in% kbc,
-      "Kutapalong Megacamp",
-      ifelse(camp_name %in% iso, "Detached Camps", "Southern Teknaf")
-    )
-  ))
->>>>>>> master
 # cmp_data@data<-cmp_data@data %>% new_recoding(region,source = camp_name) %>%
 #   recode_to("Kutapalong",where.selected.any = kbc, otherwise.to = 'Not Assessed',na.to = 'Not Assessed') %>%
 #   recode_to("Detached Camps",where.selected.any = iso) %>%
@@ -211,16 +183,17 @@ cmp_data@data<-cmp_data@data %>%
 # cmp_data$region<-ifelse(cmp_data$camp_name %in%  kbc, "Kutapalong",
 #        ifelse(cmp_data$camp_name%in% iso, "Isolated Camps","Southern Teknaf"))
 
-sfdf <- st_as_sf(cmp_data)
 
-sfdf <- sfdf %>%
+sf <- sf %>%
   mutate(
     lon = purrr::map_dbl(geometry, ~ st_centroid(.x)[[1]]),
     lat = purrr::map_dbl(geometry, ~ st_centroid(.x)[[2]])
   )
 
-limits<-c(min(sfdf$mean,na.rm = T),max(sfdf$mean,na.rm = T))
-plots<-sfdf %>% split(sfdf$camp_setting) %>% purrr::map(function(x){
+
+
+limits<-c(min(sf$mean,na.rm = T),max(sf$mean,na.rm = T))
+plots<-sf %>% split(sf[["region"]]) %>% purrr::map(function(x){
   plot <- ggplot(x)+
     geom_sf(aes(fill=mean),color = 'white')+
     theme_minimal()+
@@ -228,7 +201,7 @@ plots<-sfdf %>% split(sfdf$camp_setting) %>% purrr::map(function(x){
     theme(axis.text.x = element_blank(),
           axis.text.y = element_blank(),
           axis.ticks =element_blank())+
-    geom_text_repel(aes(x = lon, y = lat, label = camp_name))
+    geom_text_repel(aes(x = lon, y = lat, label = match_id))
   print(plot)
   })
   
