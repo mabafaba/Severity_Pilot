@@ -20,6 +20,7 @@ library(hypegrammaR)
 library(kableExtra)
 library(msni19)
 library(glue)
+library(ggmosaic)
 
 source("functions/utilities.R")
 source("functions/loading_inputs.R")
@@ -43,13 +44,18 @@ assessment$data %<>% remove_non_consent
 assessment$severity <- severity_compositions(hh  = assessment$data,
                                              ind = assessment$loops$individuals)
 
+if(group == "refugee"){
+combination_tables<-read_all_csvs("./input_public/threshold_definitions/refugees/")  
+}else{
+  combination_tables<-read_all_csvs("./input_public/threshold_definitions/host/")  
 
-combination_tables<-read_all_csvs("./input_public/threshold_definitions/refugees/")
+}
+
 subpillar_scores <- subpillar_scores_bgd(list_of_combination_tables = combination_tables,
                                                        data = assessment$severity)
 
 
-msni_varied<-msni_variations(combination_tables, assessment$severity)
+
 
 assessment$severity <- c(assessment$severity,subpillar_scores) %>% as_tibble
 
@@ -63,7 +69,7 @@ assessment$data$msni<-with(assessment$severity,{
                health_lsg = health,
                protection_lsg = protection,
                wash_lsg = wash,
-               shelter_lsg = nfi,
+               shelter_lsg = shelter,
                impact = impact,
                capacity_gaps = capacity)
 })
@@ -94,7 +100,7 @@ faceted_density_plot(assessment$data,
 
 ```
 
-The estimated severity in the host community:
+The estimated severity by location:
 
 
 
@@ -118,17 +124,22 @@ severity_disaggregated %>%
 ```
 
 
-```{r}
+```{r,fig.height=10}
+
+
 
 severity_disaggregated %>%
-  map_to_labeled(questionnaire) %>% 
-  map_to_visualisation %>% .$ggplot
+  (function(x){x$summary.statistic<-x$summary.statistic %>% arrange(independent.var.value,numbers);x}) %>% 
+  map_to_labeled(questionnaire) %>% (hypegrammaR:::grouped_barchart_percent) %>% .$ggplot + coord_flip()+ylab("% population per MSNI score")
+
 
 
 ```
 
+
 ### Distribution - How 'varied' are the scores?
 ```{r}
+
 design<-map_to_design(data,weighting_function =  weighting)
 standard_deviation <- sqrt(survey::svyvar(~msni,design)[1])
 ```
@@ -166,42 +177,162 @@ data.frame(`composite variable` = names(severity[,-1]),
 
 ### Sensitivity to Included Indicators
 
+
+```{r}
+# create variations and calculate msni
+msni_varied_indicators<-msni_variations(combination_tables, 
+                                        assessment$severity,
+                                        variation_function = vary_combination_tables_indicator_inclusion)
+
+```
+We show that overall, the index is not overly affected by removing (and by extension adding) individual indicators from the calculation, with the exception of three indicators whos importance warrants a stronger impact.
+
+We test how sensitive the index is with regards to which indicators are included; The overall score should ideally not be completely changed if specific indicators are added or removed; at the same time we should expect at least some variation based on which indicators are included. Prior to analysis, we choose a threshold of **a difference of 0.5 on the 1-4 scale that should ideally not be surpassed** if an individual indicator is removed (or added). We recalculate the score after removing each of the `r ncol(msni_varied_indicators)` sub-indicators , and test for each one whether the difference to the complete index exceeds 0.5
+
 ```{r}
 
 # t-test: differences smaller 0.5 on average?
 
 # new dataframe: differences & stratum 
+
 msni_original<- tibble(msni = assessment$data$msni)
-msni_diffs <- msni_varied %>% purrr::map(function(x){abs(x-msni_original)-0.5}) %>% as_tibble
-names(msni_diffs)<-paste0("diff",1:ncol(msni_diffs))
-msni_diffs<- lapply(msni_diffs,unlist) %>% as.data.frame
-msni_diffs$camp_location<-assessment$data$camp_location
 
 
-# make survey design object
-design<-map_to_design(msni_diffs,
-                      weighting_function = weighting)
+sensitivity_test_table<- sensitivity_variation_test_result_table(msni_original = msni_original,
+                                        msni_varied = msni_varied_indicators,
+                                        threshold = 0.5,
+                                        strata_data_name = default_disaggregation,
+                                        strata_data_values = data[[default_disaggregation]])
 
-# define test formulas:
-test_formulas<-sapply(paste0(names(msni_diffs),"~",0),formula)
+sensitivity_test_table %>% kable(escape = FALSE) %>% kable_styling()
 
-# run tests:
-tests<-lapply(test_formulas,svyttest,design = design)
 
-# which variations have average <-0.5?
-tests <- data.frame(sapply(tests,function(x){x$estimate}),sapply(tests,function(x){x$p.value}))
-names(tests)<- c("distance from 0.5 difference","p")
-tests$difference_smaller_05<-tests$`distance from 0.5 difference` < 0
-tests$p_bonferroni_corrected<-tests$p*nrow(tests)
-tests$dif_significantly_smaller_05<-tests$difference_smaller_05 & tests$p_bonferroni_corrected<0.01
-tests$`average absolute difference`<-tests$`distance from 0.5 difference`+0.5
-tests$`p value (Bonferroni corrected)`<-round(tests$p_bonferroni_corrected,5)
-tests$`Difference signifcantly smaller 0.5`<-tests$dif_significantly_smaller_05 %>% as.character %>% recode("TRUE" = "Yes","FALSE" = "No")
-tests %<>% arrange(dif_significantly_smaller_05,desc(`average absolute difference`))
-tests %>% select(`average absolute difference`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5`)
-tests$`Difference signifcantly smaller 0.5`<- tests$`Difference signifcantly smaller 0.5` %>% cell_spec(background = ifelse(tests$`Difference signifcantly smaller 0.5`=="Yes","green","red"),color = "white")
-tests %>% select(`average absolute difference`,`p value (Bonferroni corrected)`,`Difference signifcantly smaller 0.5`) %>% kable(escape = FALSE) %>% kable_styling()
-library(ggmos)
+```
+
+The overall index changes more than 0.5 points when removing the indicators for _drinking water source_ (WASH), _child marriage to reduce economic burden_ (Capacity Gaps) and _water access quantity_ (WASH). In the composite index, these indicators were consiously selected to have strong impact. As such, it is expected that their removal would have a strong impact on the results.
+
+The index is robust towards all other indicators within the threshold of 0.5 points on the scale.
+
+
+
+```{r mosaic plot}
+
+
+
+# Example of how the formula is built
+# 
+#     weight = 1
+#     x = product(Y, X)
+#     fill = W
+#     conds = product(Z)
+# 
+# These aesthetics set up the formula for the distribution:
+# 
+#     Formula: 1 ~ W + X + Y | Z
+
+stratum_tibble<-tibble(stratum=assessment$data[[default_disaggregation]])
+colnames(stratum_tibble)<-default_disaggregation
+msni_varied_and_original<-c(msni_varied_indicators,
+                            msni_original,
+                            stratum_tibble) %>% as_tibble
+
+msni_varied_and_original<-gather_(msni_varied_and_original,key = "key",value = 'value',gather_cols = names(msni_varied_and_original)[!(names(msni_varied_and_original) %in% c("msni",default_disaggregation))])
+msni_varied_and_original$weights<-weighting(msni_varied_and_original)
+msni_varied_and_original$value<-round(msni_varied_and_original$value,2)
+msni_varied_and_original<-msni_varied_and_original[!is.na(msni_varied_and_original),]
+ggplot(msni_varied_and_original)+
+  geom_mosaic(aes(weight=weights,
+                  x=product(msni,value),fill = (msni)))+scale_fill_brewer(name = "actual MSNI score")+theme_minimal()+theme(axis.text.y = element_blank())+xlab("MSNI score with one indicator removed")+ylab("")
+
+```
+
+### Sensitivity to Thresholds
+
+The methodology relies heavily on normative judgement from sector as well is inter-sectoral experts.
+As such, it needs to be robust with regards to variations in those judgements.
+We add random noise of varying strength to the expert decision of how the indicators are combined, and compare the results to the original msni needs score.
+
+
+
+```{r}
+# create variations and calculate msni
+msni_varied_thresholds<-msni_variations(combination_tables, 
+                                        assessment$severity,
+                                        variation_function = vary_combination_tables_thresholds)
+
+```
+
+
+[[interpretation]]
+
+
+```{r}
+
+# t-test: differences smaller 0.5 on average?
+
+# new dataframe: differences & stratum 
+
+msni_original<- tibble(msni = assessment$data$msni)
+
+
+sensitivity_test_table<- sensitivity_variation_test_result_table(msni_original = msni_original,
+                                        msni_varied = msni_varied_thresholds,
+                                        threshold = 0.5,
+                                        strata_data_name = default_disaggregation,
+                                        strata_data_values = data[[default_disaggregation]])
+
+sensitivity_test_table %>% kable(escape = FALSE) %>% kable_styling()
+```
+
+```{r}
+
+
+msni_varied_thresholds_with_original<-msni_varied_thresholds
+msni_varied_thresholds_with_original$original<-assessment$data$msni
+
+msni_varied_thresholds_long <- msni_varied_thresholds_with_original %>% gather("key","value", -original)
+msni_varied_thresholds_long$key<-gsub("\\.","",msni_varied_thresholds_long$key) %>% gsub("[0-9]","",.)
+ggplot(msni_varied_thresholds_long)+geom_bar(aes(x = value,fill = factor(original)),position = "dodge")+xlab("value with varied thresholds")+hypegrammaR:::scale_fill_reach_categorical(4,name = "original Score")+theme_minimal()
+
+diffs<-lapply(msni_varied_thresholds_with_original,function(x){x-unlist(msni_original)}) %>% as_tibble %>% gather("key","value",-original)
+diffs$key<-gsub("\\.","",msni_varied_thresholds_long$key) %>% gsub("[0-9]","",.)
+ggplot(diffs)+geom_bar(aes(x=value,fill=key))+hypegrammaR:::scale_fill_reach_categorical(8,name = "sub index Score")+theme_minimal()+xlab("Difference between original score and score with varied thresholds")
+```
+
+
+
+
+```{r mosaic plot2}
+
+
+
+# Example of how the formula is built
+# 
+#     weight = 1
+#     x = product(Y, X)
+#     fill = W
+#     conds = product(Z)
+# 
+# These aesthetics set up the formula for the distribution:
+# 
+#     Formula: 1 ~ W + X + Y | Z
+
+stratum_tibble<-tibble(stratum=assessment$data[[default_disaggregation]])
+colnames(stratum_tibble)<-default_disaggregation
+msni_varied_and_original<-c(msni_varied_thresholds,
+                            msni_original,
+                            stratum_tibble) %>% as_tibble
+
+msni_varied_and_original<-gather_(msni_varied_and_original,key = "key",value = 'value',gather_cols = names(msni_varied_and_original)[!(names(msni_varied_and_original) %in% c("msni",default_disaggregation))])
+msni_varied_and_original$weights<-weighting(msni_varied_and_original)
+msni_varied_and_original$value<-round(msni_varied_and_original$value,2)
+msni_varied_and_original<-msni_varied_and_original[!is.na(msni_varied_and_original),]
+ggplot(msni_varied_and_original)+
+  geom_mosaic(aes(weight=weights,
+                  x=product(msni,value),fill = (msni)))+scale_fill_brewer(name = "actual MSNI score")+theme_minimal()+theme(axis.text.y = element_blank())+xlab("MSNI score with one indicator removed")+ylab("")
+
+```
+
 ```
 
 
