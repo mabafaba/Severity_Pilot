@@ -159,9 +159,6 @@ host_severity_bgd_msna18<-function(hh,ind){
   
   
 }
-out<-host_severity_bgd_msna18(hhy,ind)
-class(out)
-length(out$si.edu.formal_learn_space
-out %>% sapply(function(x) length(which(is.na(x))))
+
 
                

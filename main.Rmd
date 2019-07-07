@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
-group<-c("host","refugee")[2]
+group<-c("host","refugee")[1]
 
 knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
@@ -45,6 +45,7 @@ assessment$data %<>% remove_non_consent
 assessment$severity <- severity_compositions(hh  = assessment$data,
                                              ind = assessment$loops$individuals)
 
+assessment$severity$health
 if(group == "refugee"){
 combination_tables<-read_all_csvs("./input_public/threshold_definitions/refugees/")  
 }else{
@@ -123,6 +124,7 @@ severity_disaggregated <- map_to_result(data,dependent.var = "msni",
                                         independent.var = default_disaggregation,
                                         case = type_of_analysis,
                                         weighting = weighting)
+
 
 severity_disaggregated %>%
   map_to_labeled(questionnaire) %>% 
@@ -463,7 +465,7 @@ ggplot(msni_varied_and_original)+
 
 
 
-```{r}
+```{r, eval=FALSE}
 
 (data$msni>=3) %>% table
 
