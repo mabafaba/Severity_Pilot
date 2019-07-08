@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
-group<-c("host","refugee")[2]
+group<-c("host","refugee")[1]
 
 knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
