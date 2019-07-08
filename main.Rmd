@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
-group<-c("host","refugee")[2]
+group<-c("host","refugee")[1]
 
 knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
@@ -137,7 +137,6 @@ type_of_analysis<-map_to_case("group_difference",
                   dependent.var.type = "categorical",
                   independent.var.type = "categorical")
 
-
 severity_disaggregated <- map_to_result(data,dependent.var = "msni",
                                         independent.var = default_disaggregation,
                                         case = type_of_analysis,
@@ -178,6 +177,8 @@ severity_disaggregated <- map_to_result(data,dependent.var = "msni",
                                         independent.var = default_disaggregation,
                                         case = type_of_analysis,
                                         weighting = weighting)
+
+
 
 severity_disaggregated %>% result_disaggregated_by_match_id_as_map(assessment)
   

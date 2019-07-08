@@ -165,7 +165,7 @@ bgd_refugee_add_standard_regions_to_data<-function(data,location_column){
                         "camp 20", "camp 1e",  "camp 17", "camp 9", 
                         "camp 8w", "camp 1w", "camp 15", "camp 5" , "camp 3", 
                         "camp 16", "camp 2w", "camp 20 extension", "camp 11", "camp 4", 
-                        "camp 19",  "camp 7", "camp 4 extension", "kutapalong rc",
+                        "camp 19",  "camp 7", "camp 4 extension","kutupalong rc",
                         "camp 8e", "camp 2e", "camp 12"),
                 iso = c("camp 21", "camp 22","camp 23","choukhali"),
                 st = c("camp 24","camp 25","camp 26","camp 27", "nayapara rc"))
@@ -174,7 +174,9 @@ bgd_refugee_add_standard_regions_to_data<-function(data,location_column){
   camp_name<-str_standardize_cxb_camps(data[,location_column])
   
   attach(regions)
-  data <- data %>% mutate(region = ifelse(
+  data <- data %>% 
+    mutate(
+      region = ifelse(
       camp_name %in% kbc,
       "Kutapalong Megacamp",
       ifelse(camp_name %in% iso, "Detached Camps", "Southern Teknaf")
