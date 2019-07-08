@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
-group<-c("host","refugee")[1]
+group<-c("host","refugee")[2]
 
 knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
@@ -38,6 +38,7 @@ source("./functions/prioritisation_compare.R")
 source("./functions/vulnerability_recoding_host.R")
 source("./functions/vulnerability_recoding_refugee.R")
 source("./functions/gis.R")
+source('./functions/colours.R')
 #  READ INPUT FILES
 
 assessment<-msna18_severity_pilot_load_assessment(group)
@@ -188,20 +189,51 @@ severity_disaggregated %>% result_disaggregated_by_match_id_as_map(assessment)
                                 dependent.var.type = "categorical",
                                 independent.var.type = "categorical")
   
-  severity_disaggregated <- map_to_result(data,dependent.var = "msni",
+  severity_disaggregated4 <- map_to_result(data,dependent.var = "msni",
+                                          independent.var = default_disaggregation,
+                                          case = type_of_analysis,
+                                          weighting = weighting)
+  
+  severity_disaggregated3 <- map_to_result(data,dependent.var = "msni",
+                                          independent.var = default_disaggregation,
+                                          case = type_of_analysis,
+                                          weighting = weighting)
+  
+  severity_disaggregated3_4 <- map_to_result(data,dependent.var = "msni",
                                           independent.var = default_disaggregation,
                                           case = type_of_analysis,
                                           weighting = weighting)
   
   
-  severity_disaggregated$summary.statistic<-severity_disaggregated$summary.statistic %>% 
+  
+  
+  severity_disaggregated4$summary.statistic<-severity_disaggregated4$summary.statistic %>% 
     filter(as.character(dependent.var.value)=="4")
+  severity_disaggregated3$summary.statistic<-severity_disaggregated3$summary.statistic %>%
+    filter(as.character(dependent.var.value)=="3")
+
+  severity_disaggregated3_4$summary.statistic<-severity_disaggregated3_4$summary.statistic %>%
+    filter(as.character(dependent.var.value)=="3"| as.character(dependent.var.value)=="4") %>% 
+    group_by(independent.var.value) %>% 
+    summarise(numbers=sum(numbers))
+
+
+  
     # mutate(percent=round(numbers,2)) %>%
     # select(camp_name= independent.var.value,percent)
   # 
   
-    severity_disaggregated %>% result_disaggregated_by_match_id_as_map(assessment,
-                                                                       color_scale_name = "% population with Severity 4")
+    severity_disaggregated4 %>% result_disaggregated_by_match_id_as_map(assessment,
+                                                                       color_scale_name = "% pop. severity 4")
+    
+    
+    severity_disaggregated3 %>% result_disaggregated_by_match_id_as_map(assessment,
+                                                                       color_scale_name = "% pop. severity 3")
+    
+    severity_disaggregated3_4 %>% result_disaggregated_by_match_id_as_map(assessment,
+                                                                       color_scale_name = "% pop. severity>=3")
+    
+
   # #score of 
   # sum_stats<-severity_disaggregated$summary.statistic %>% 
   #   filter(as.character(dependent.var.value)=="4") %>% 
@@ -365,9 +397,11 @@ data.frame(`composite variable` = names(severity[,-1]),
 
 ```{r}
 # create variations and calculate msni
+
 msni_varied_indicators<-msni_variations(combination_tables, 
                                         assessment$severity,
                                         variation_function = vary_combination_tables_indicator_inclusion)
+
 
 ```
 
