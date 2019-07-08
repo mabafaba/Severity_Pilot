@@ -222,16 +222,17 @@ severity_disaggregated %>% result_disaggregated_by_match_id_as_map(assessment)
     # mutate(percent=round(numbers,2)) %>%
     # select(camp_name= independent.var.value,percent)
   # 
+  severity_disaggregated3 %>% result_disaggregated_by_match_id_as_map(assessment,
+                                                                      color_scale_name = "% Population - Severity 3")
   
-    severity_disaggregated4 %>% result_disaggregated_by_match_id_as_map(assessment,
-                                                                       color_scale_name = "% pop. severity 4")
-    
-    
-    severity_disaggregated3 %>% result_disaggregated_by_match_id_as_map(assessment,
-                                                                       color_scale_name = "% pop. severity 3")
-    
-    severity_disaggregated3_4 %>% result_disaggregated_by_match_id_as_map(assessment,
-                                                                       color_scale_name = "% pop. severity>=3")
+  severity_disaggregated4 %>% result_disaggregated_by_match_id_as_map(assessment,
+                                                                      color_scale_name = "% Population - Severity 4")
+  
+  
+  
+  
+  severity_disaggregated3_4 %>% result_disaggregated_by_match_id_as_map(assessment,
+                                                                        color_scale_name = "% Population - Severity >= 3")
     
 
   # #score of 

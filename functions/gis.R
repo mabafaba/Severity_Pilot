@@ -97,11 +97,11 @@ result_disaggregated_by_match_id_as_map<-function(result,assessment, color_scale
       # scale_fill_continuous(limits=limits, name= color_scale_name)+
       # scale_fill_brewer( palette="YlOrRd",limits=limits, name= color_scale_name )+
       # scale_fill_gradient(low = "#56B1F7", high = "#132B43",limits=limits, name= color_scale_name )+
-      scale_fill_gradient(low = "beige", high = "red",limits=limits, name= color_scale_name )+
+      scale_fill_gradient(low = "beige", high = "red",limits=limits, name= "" )+
       theme(axis.text.x = element_blank(),
             axis.text.y = element_blank(),
             axis.ticks =element_blank())+
-      geom_text_repel(aes(x = lon, y = lat, label = match_id))
+      geom_text_repel(aes(x = lon, y = lat, label = match_id))+ggtitle(color_scale_name)
     print(plot)
   })
   
