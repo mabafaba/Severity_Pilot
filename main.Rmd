@@ -45,7 +45,7 @@ if(group=="host") {
 if(group == "refugee") {
   severity_compositions <- refugee_severity_bgd_msna18
   vulnerability_compositions <- refugee_vulnerability_bgd_msna18
-  }
+}
 
 
 assessment$data %<>% remove_non_consent
@@ -55,18 +55,18 @@ assessment$severity <- severity_compositions(hh  = assessment$data,
 
 
 assessment$vulnerability <- vulnerability_compositions(hh  = assessment$data,
-                                             ind = assessment$loops$individuals)
+                                                       ind = assessment$loops$individuals)
 
 
 if(group == "refugee"){
-combination_tables<-read_all_csvs("./input_public/threshold_definitions/refugees/")  
+  combination_tables<-read_all_csvs("./input_public/threshold_definitions/refugees/")  
 }else{
   combination_tables<-read_all_csvs("./input_public/threshold_definitions/host/")  
-
+  
 }
 
 subpillar_scores <- subpillar_scores_bgd(list_of_combination_tables = combination_tables,
-                                                       data = assessment$severity)
+                                         data = assessment$severity)
 
 
 
@@ -94,7 +94,7 @@ assessment$data$msni<-with(assessment$severity,{
 attach(assessment)
 
 
-  
+
 ```
 
 
@@ -129,8 +129,8 @@ The estimated severity by location:
 
 ```{r}
 type_of_analysis<-map_to_case("group_difference",
-                  dependent.var.type = "categorical",
-                  independent.var.type = "categorical")
+                              dependent.var.type = "categorical",
+                              independent.var.type = "categorical")
 
 
 severity_disaggregated <- map_to_result(data,dependent.var = "msni",
@@ -171,15 +171,29 @@ standard_deviation <- round(sqrt(survey::svyvar(~msni,design,na.rm = T)[1]),2) %
 The overall standard deviation was <b> `r standard_deviation` </b>
 
 ```{r}
+
 ecdf <- weighted_ecdf(data$msni, weighting(data))
 
 ggplot(ecdf, aes(x, cum.pct)) +
   geom_line() + 
   theme_minimal() + 
   ylab("Cummulative probability") + 
-  xlab("Score")
+  xlab("Score")+geom_point()
+
+
+# 
+# 
+# ggplot(ecdf, aes(x, cum.pct)) +
+#   geom_line() + 
+#   theme_minimal() + 
+#   ylab("Fraction of sites with more the (x) percent of population with score >=3") + 
+#   xlab("Score")+geom_point()
+
+
 
 ```
+
+
 
 
 
@@ -242,17 +256,17 @@ vulnerability_columns<-names(data) %>% grep("^vi\\.",.,value = T)
 vulnerability_columns<- vulnerability_columns[-1]
 
 for(vi in vulnerability_columns){
-
-cat("\n\n**",vi,"**\n\n")
-if(length(unique(data[[vi]]))>1){
-comparisons <- compare_each(data,
-                            dependent.variable = "msni",
-                            dependent.variable.type = "categorical",
-                            independent.variable = vi,
-                            weighting = weighting)
-
-comparisons %>% kable_comparison_result_categorical(vi) %>% cat
-}
+  
+  cat("\n\n**",vi,"**\n\n")
+  if(length(unique(data[[vi]]))>1){
+    comparisons <- compare_each(data,
+                                dependent.variable = "msni",
+                                dependent.variable.type = "categorical",
+                                independent.variable = vi,
+                                weighting = weighting)
+    
+    comparisons %>% kable_comparison_result_categorical(vi) %>% cat
+  }
 }
 
 
@@ -296,15 +310,15 @@ msni_varied_indicators<-msni_variations(combination_tables,
 ```{r, results='asis'}
 
 cat(if(group == "refugee"){
-
-"We show that overall, the index is not overly affected by removing (and by extension adding) individual indicators from the calculation, with the exception of three indicators whos importance warrants a stronger impact."
+  
+  "We show that overall, the index is not overly affected by removing (and by extension adding) individual indicators from the calculation, with the exception of three indicators whos importance warrants a stronger impact."
   
 } else if( group == "host"){
   
-"We show that overall, the index is not overly affected by removing (and by extension adding) individual indicators from the calculation."
+  "We show that overall, the index is not overly affected by removing (and by extension adding) individual indicators from the calculation."
   
   
-  }
+}
 )
 
 cat(paste("We test how sensitive the index is with regards to which indicators are included; The overall score should ideally not be completely changed if specific indicators are added or removed; at the same time we should expect at least some variation based on which indicators are included. Prior to analysis, we choose a threshold of **a difference of 0.5 on the 1-4 scale that should ideally not be surpassed** if an individual indicator is removed (or added). We recalculate the score after removing each of the",ncol(msni_varied_indicators),"sub-indicators , and test for each one whether the difference to the complete index exceeds 0.5"))
@@ -324,10 +338,10 @@ msni_original<- tibble(msni = assessment$data$msni)
 
 
 sensitivity_test_table<- sensitivity_variation_test_result_table(msni_original = msni_original,
-                                        msni_varied = msni_varied_indicators,
-                                        threshold = 0.5,
-                                        strata_data_name = default_disaggregation,
-                                        strata_data_values = data[[default_disaggregation]])
+                                                                 msni_varied = msni_varied_indicators,
+                                                                 threshold = 0.5,
+                                                                 strata_data_name = default_disaggregation,
+                                                                 strata_data_values = data[[default_disaggregation]])
 
 sensitivity_test_table %>% kable(escape = FALSE) %>% kable_styling()
 
@@ -336,8 +350,8 @@ sensitivity_test_table %>% kable(escape = FALSE) %>% kable_styling()
 
 ```{r,results = 'asis'}
 cat(if(group == "refugee"){
-
-"The overall index changes more than 0.5 points when removing the indicators for _drinking water source_ (WASH), _child marriage to reduce economic burden_ (Capacity Gaps) and _water access quantity_ (WASH). In the composite index, these indicators were consiously selected to have strong impact. As such, it is expected that their removal would have a strong impact on the results.
+  
+  "The overall index changes more than 0.5 points when removing the indicators for _drinking water source_ (WASH), _child marriage to reduce economic burden_ (Capacity Gaps) and _water access quantity_ (WASH). In the composite index, these indicators were consiously selected to have strong impact. As such, it is expected that their removal would have a strong impact on the results.
 
 The index is robust towards all other indicators within the threshold of 0.5 points on the scale."
   
@@ -347,7 +361,7 @@ The index is robust towards all other indicators within the threshold of 0.5 poi
   "None of the indicators led to a change of more than 0.5 in the average score when removed. This suggests that the index is robust towards inclusion / exclusion of indicators"  
   
   
-  }
+}
 )
 ```
 
@@ -410,10 +424,10 @@ msni_original<- tibble(msni = assessment$data$msni)
 
 
 sensitivity_test_table<- sensitivity_variation_test_result_table(msni_original = msni_original,
-                                        msni_varied = msni_varied_thresholds,
-                                        threshold = 0.5,
-                                        strata_data_name = default_disaggregation,
-                                        strata_data_values = data[[default_disaggregation]])
+                                                                 msni_varied = msni_varied_thresholds,
+                                                                 threshold = 0.5,
+                                                                 strata_data_name = default_disaggregation,
+                                                                 strata_data_values = data[[default_disaggregation]])
 
 sensitivity_test_table %>% kable(escape = FALSE) %>% kable_styling()
 ```
@@ -472,7 +486,7 @@ ggplot(msni_varied_and_original)+
 ```{r, eval=FALSE}
 
 assessment$vulnerability<-host_vulnerability_bgd_msna18(assessment$data,
-                                 assessment$loops$individuals)
+                                                        assessment$loops$individuals)
 
 # 
 # assessment$vulnerability<-refugee_vulnerability_bgd_msna18(assessment$data,

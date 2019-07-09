@@ -2,7 +2,8 @@
 weighted_ecdf<-function(x,weights){
   df<-tibble(x=x,w=weights)
   df <- df[order(df$x), ]  # Won't change anything since it was created sorted
-  cum.pct <- cumsum(x * weights) / sum(x * weights)
+  df<- df %>% filter(!is.na(x)&!is.na(w))
+  cum.pct <- cumsum(x * weights) / sum(x * weights,na.rm = T)
   df$cum.pct <- with(df, cumsum(x * w) / sum(x * w))
   df
 }
