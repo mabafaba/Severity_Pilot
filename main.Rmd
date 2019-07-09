@@ -78,8 +78,6 @@ subpillar_scores <- subpillar_scores_bgd(list_of_combination_tables = combinatio
                                          data = assessment$severity)
 
 
-
-
 assessment$severity <- c(assessment$severity,subpillar_scores) %>% as_tibble
 
 # impact & capacity score guessed
