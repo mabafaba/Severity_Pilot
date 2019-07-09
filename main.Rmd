@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
-group<-c("host","refugee")[1]
+group<-c("host","refugee")[2]
 
 knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
@@ -370,7 +370,7 @@ vulnerability_columns<- vulnerability_columns[-1]
 
 for(vi in vulnerability_columns){
   
-  cat("\n\n**",vi,"**\n\n")
+  cat(paste0("\n\n**",vi,"**\n\n"))
   if(length(unique(data[[vi]]))>1){
     comparisons <- compare_each(data,
                                 dependent.variable = "msni",

@@ -131,7 +131,7 @@ comparisons_df <- comparisons_df %>%
   mutate("Significant (at p < 0.01)" = ifelse(comparisons_df$`P Value (Bonferroni corrected)`<=0.01,"Yes","No"))
 
 comparisons_df$`Significant (at p < 0.01)`  <-  comparisons_df$`Significant (at p < 0.01)` %>% cell_spec(background = ifelse(comparisons_df$`Significant (at p < 0.01)`=="Yes","green","red"),color = 'white')
-
+comparisons_df<-comparisons_df[1,,drop = FALSE]
 comparisons_df %>% kable(escape = FALSE) %>% kable_styling()
 
 
