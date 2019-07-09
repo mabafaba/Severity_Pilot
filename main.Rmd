@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
-group<-c("host","refugee")[2]
+group<-c("host","refugee")[1]
 
 knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
@@ -559,7 +559,7 @@ ggplot(msni_varied_thresholds_long)+geom_bar(aes(x = value,fill = factor(origina
 
 diffs<-lapply(msni_varied_thresholds_with_original,function(x){x-unlist(msni_original)}) %>% as_tibble %>% gather("key","value",-original)
 diffs$key<-gsub("\\.","",msni_varied_thresholds_long$key) %>% gsub("[0-9]","",.)
-ggplot(diffs)+geom_bar(aes(x=value,fill=key))+hypegrammaR:::scale_fill_reach_categorical(8,name = "sub index Score")+theme_minimal()+xlab("Difference between original score and score with varied thresholds")
+ggplot(diffs)+geom_bar(aes(x=value,fill=key))+hypegrammaR:::scale_fill_reach_categorical(12,name = "sub index Score")+theme_minimal()+xlab("Difference between original score and score with varied thresholds")
 ```
 
 
