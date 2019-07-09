@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 
-group<-c("host","refugee")[1]
+group<-c("host","refugee")[2]
 
 knitr::opts_chunk$set(echo = TRUE,
                       message=FALSE,
@@ -20,8 +20,12 @@ library(hypegrammaR)
 library(kableExtra)
 library(msni19)
 library(glue)
+library(stringr)
+library(rgdal)
 library(ggmosaic)
-
+library(sp)
+library(sf)
+library(ggrepel)
 source("functions/utilities.R")
 source("functions/loading_inputs.R")
 source("functions/severity_recoding_from_combination_table.R")
@@ -33,6 +37,8 @@ source("./functions/sensitivity_indicator_inclusion.R")
 source("./functions/prioritisation_compare.R")
 source("./functions/vulnerability_recoding_host.R")
 source("./functions/vulnerability_recoding_refugee.R")
+source("./functions/gis.R")
+source('./functions/colours.R')
 #  READ INPUT FILES
 
 assessment<-msna18_severity_pilot_load_assessment(group)
@@ -57,6 +63,9 @@ assessment$severity <- severity_compositions(hh  = assessment$data,
 assessment$vulnerability <- vulnerability_compositions(hh  = assessment$data,
                                                        ind = assessment$loops$individuals)
 
+assessment$severity$si.shelt
+
+assessment$severity %>% names
 
 if(group == "refugee"){
   combination_tables<-read_all_csvs("./input_public/threshold_definitions/refugees/")  
@@ -132,11 +141,13 @@ type_of_analysis<-map_to_case("group_difference",
                               dependent.var.type = "categorical",
                               independent.var.type = "categorical")
 
-
 severity_disaggregated <- map_to_result(data,dependent.var = "msni",
                                         independent.var = default_disaggregation,
                                         case = type_of_analysis,
                                         weighting = weighting)
+
+
+
 
 
 severity_disaggregated %>%
@@ -144,11 +155,6 @@ severity_disaggregated %>%
   map_to_table %>% kable %>% kable_styling()
 
 ```
-
-
-
-
-
 
 ```{r,fig.height=10}
 
@@ -161,6 +167,115 @@ severity_disaggregated %>%
 
 
 ```
+
+
+### Map Severities
+
+```{r, message=FALSE, warning = FALSE}
+
+type_of_analysis<-map_to_case("direct_reporting",
+                              dependent.var.type = "numerical",
+                              independent.var.type = "categorical")
+
+severity_disaggregated <- map_to_result(data,dependent.var = "msni",
+                                        independent.var = default_disaggregation,
+                                        case = type_of_analysis,
+                                        weighting = weighting)
+
+
+
+severity_disaggregated %>% result_disaggregated_by_match_id_as_map(assessment)
+  
+  
+  
+  type_of_analysis<-map_to_case("group_difference",
+                                dependent.var.type = "categorical",
+                                independent.var.type = "categorical")
+  
+  severity_disaggregated4 <- map_to_result(data,dependent.var = "msni",
+                                          independent.var = default_disaggregation,
+                                          case = type_of_analysis,
+                                          weighting = weighting)
+  
+  severity_disaggregated3 <- map_to_result(data,dependent.var = "msni",
+                                          independent.var = default_disaggregation,
+                                          case = type_of_analysis,
+                                          weighting = weighting)
+  
+  severity_disaggregated3_4 <- map_to_result(data,dependent.var = "msni",
+                                          independent.var = default_disaggregation,
+                                          case = type_of_analysis,
+                                          weighting = weighting)
+  
+  
+  
+  
+  severity_disaggregated4$summary.statistic<-severity_disaggregated4$summary.statistic %>% 
+    filter(as.character(dependent.var.value)=="4")
+  severity_disaggregated3$summary.statistic<-severity_disaggregated3$summary.statistic %>%
+    filter(as.character(dependent.var.value)=="3")
+
+  severity_disaggregated3_4$summary.statistic<-severity_disaggregated3_4$summary.statistic %>%
+    filter(as.character(dependent.var.value)=="3"| as.character(dependent.var.value)=="4") %>% 
+    group_by(independent.var.value) %>% 
+    summarise(numbers=sum(numbers))
+
+
+  
+    # mutate(percent=round(numbers,2)) %>%
+    # select(camp_name= independent.var.value,percent)
+  # 
+  severity_disaggregated3 %>% result_disaggregated_by_match_id_as_map(assessment,
+                                                                      color_scale_name = "% Population - Severity 3")
+  
+  severity_disaggregated4 %>% result_disaggregated_by_match_id_as_map(assessment,
+                                                                      color_scale_name = "% Population - Severity 4")
+  
+  
+  
+  
+  severity_disaggregated3_4 %>% result_disaggregated_by_match_id_as_map(assessment,
+                                                                        color_scale_name = "% Population - Severity >= 3")
+    
+
+  # #score of 
+  # sum_stats<-severity_disaggregated$summary.statistic %>% 
+  #   filter(as.character(dependent.var.value)=="4") %>% 
+  #   mutate(percent=round(numbers,2)) %>% 
+  #   select(camp_name= independent.var.value,percent)
+  # 
+  # sum_stats$camp_name<-str_standardize_cxb_camps(sum_stats$camp_name)
+  # 
+  # sfdf <- st_as_sf(cmp_data)
+  # 
+  # sfdf <- sfdf %>%
+  #   mutate(
+  #     lon = purrr::map_dbl(geometry, ~ st_centroid(.x)[[1]]),
+  #     lat = purrr::map_dbl(geometry, ~ st_centroid(.x)[[2]])
+  #   )
+  # 
+  # limits<-c(min(sfdf$percent,na.rm = T),max(sfdf$percent,na.rm = T))
+  # 
+  # plots<-sfdf %>% split(sfdf$camp_setting) %>% purrr::map(function(x){
+  #   plot<-ggplot(x)+
+  #     geom_sf(aes(fill=percent),color = 'white')+
+  #               theme_minimal()+
+  #               scale_fill_continuous(limits=limits, name= "Percent Severity Score of 4")+
+  #               theme(axis.text.x = element_blank(),
+  #                     axis.text.y = element_blank(),
+  #                     axis.ticks =element_blank())+
+  #               geom_text_repel(aes(x = lon, y = lat, label = camp_name))
+  #       print(plot)
+  #   })
+  # 
+
+
+
+```
+
+
+
+
 
 
 ### Distribution - How 'varied' are the scores?
@@ -300,9 +415,11 @@ data.frame(`composite variable` = names(severity[,-1]),
 
 ```{r}
 # create variations and calculate msni
+
 msni_varied_indicators<-msni_variations(combination_tables, 
                                         assessment$severity,
                                         variation_function = vary_combination_tables_indicator_inclusion)
+
 
 ```
 

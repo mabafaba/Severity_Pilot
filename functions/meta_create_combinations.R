@@ -93,14 +93,25 @@ create_empty_combination_tables<-function(target.dir = "./output/"){
   
 }
 
-# library(xlsx)
+# 
+# sects<-c("edu","fsl","health","shelter","protection","capacity_gap","wash")
+# xls<- sapply(sects,
+#              read.xlsx,file = "./input_public/threshold_definitions/host_combinations_JIAF.xlsx")
+# 
+# 
+# dir.create("./input_public/threshold_definitions/host/")
+# mapply(write.csv,xls,paste0("./input_public/threshold_definitions/host/",names(xls),".csv"))
+
+# 
+# 
 # sects<-c("edu","fsl","health","shelter","protection","ios","wash")
 # xls<- sapply(sects,
 #              read.xlsx,file = "./input_public/threshold_definitions/refugee_combinations_JIAF.xlsx")
 # 
-# browseURL("./input_public/threshold_definitions/refugee_combinations_JIAF.xlsx")
 # dir.create("./input_public/threshold_definitions/refugees/")
-# mapply(write.csv,xls,paste0("./input_public/threshold_definitions/host/",names(xls),".csv"))
+# mapply(write.csv,xls,paste0("./input_public/threshold_definitions/refugees/",names(xls),".csv"))
+
+# 
 # 
 
 
